@@ -1,0 +1,27 @@
+{
+  "name": "cineconnect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mono-repo CinéConnect - Full stack JavaScript",
+  "scripts": {
+    "predev": "pnpm --filter @cineconnect/shared run build",
+    "dev": "concurrently -n fe,be \"pnpm --filter @cineconnect/frontend run dev\" \"pnpm --filter @cineconnect/backend run dev\"",
+    "dev:frontend": "pnpm --filter @cineconnect/frontend run dev",
+    "dev:backend": "pnpm --filter @cineconnect/backend run dev",
+    "build": "pnpm --filter @cineconnect/shared run build && pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.21.5"
+    }
+  }
+}
