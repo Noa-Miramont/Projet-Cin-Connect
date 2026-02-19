@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { Navbar } from '@/components/Navbar'
 
 export const Route = createRootRoute({
   component: RootLayout
@@ -7,7 +8,10 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Outlet />
+      <Navbar />
+      <main>
+        <Outlet />
+      </main>
     </div>
   )
 }
