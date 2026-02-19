@@ -55,14 +55,38 @@ pnpm run dev:backend    # http://localhost:3000
 | `pnpm run lint` | Lint tous les packages |
 | `pnpm run test` | Tests dans tous les packages |
 
-## Backend
+## Backend & Base de données
 
-- Créer un fichier `.env` à la racine de `backend/` à partir de `backend/.env.example`.
-- Variables utiles : `PORT`, `JWT_SECRET`, `DATABASE_URL`.
+1. Créer un fichier `.env` dans `backend/` avec au minimum :
+   - `DATABASE_URL=postgresql://localhost:5432/cineconnect` (ou votre URL PostgreSQL)
+   - `JWT_SECRET=<secret>` (optionnel en dev)
+   - `OMDB_API_KEY=c630a2cf` (clé API OMDb pour la liste des films)
+   - `PORT=3000` (optionnel)
+
+2. Créer la base et les tables avec Drizzle :
+   ```bash
+   cd backend && pnpm run db:push
+   ```
+
+3. Remplir les catégories et récupérer les films depuis l’API OMDb :
+   ```bash
+   cd backend && pnpm run seed
+   ```
+   Le seed crée les catégories puis interroge OMDb (recherches type « inception », « dark knight », etc.) et insère les films (titre, affiche, année, réalisateur, résumé, catégorie).
+
+## Fonctionnalités implémentées
+
+- **Auth** : inscription, connexion, JWT (localStorage)
+- **Films** : liste avec pagination, filtres (catégorie, année, note min., recherche), détail avec note moyenne et avis
+- **Avis** : ajout d’un avis (note 1–5 + commentaire) sur une fiche film (utilisateur connecté)
+- **Profil** : infos utilisateur, mes avis, liste d’amis, ajout / retrait d’ami (recherche par pseudo)
+- **Discussion** : chat en temps réel avec Socket.io entre amis (salles privées, messages persistés en base)
+- **Swagger** : documentation des routes sous `/api-docs`
+- **Tests** : Jest + Supertest sur les routes auth, films, reviews, friends, messages (nécessitent une base disponible pour les appels films/reviews)
 
 ## Développement par étapes
 
-1. **React / UI** — Développer les pages et composants dans `frontend/`.
-2. **Shared** — Enrichir les types dans `shared/` si besoin.
-3. **DB** — Schémas et migrations Drizzle dans `backend/src/db/`.
-4. **Backend** — Routes, contrôleurs, services dans `backend/src/`.
+1. **React / UI** — Pages et composants dans `frontend/src/pages/` et `frontend/src/components/`.
+2. **Shared** — Types dans `shared/src/types/`.
+3. **DB** — Schéma Drizzle dans `backend/src/db/schema.ts`, migrations avec `pnpm run db:generate` / `pnpm run db:push`.
+4. **Backend** — Contrôleurs, services, repositories dans `backend/src/`.

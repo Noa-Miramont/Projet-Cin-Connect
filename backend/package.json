@@ -8,7 +8,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
-    "test": "echo \"No tests in backend\""
+    "test": "jest",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "seed": "ts-node src/db/seed.ts"
   },
   "dependencies": {
     "@cineconnect/shared": "workspace:*",
@@ -37,6 +40,12 @@
     "@types/swagger-ui-express": "^4.1.6",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "drizzle-kit": "^0.28.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "@types/jest": "^29.5.14",
+    "supertest": "^7.0.0",
+    "@types/supertest": "^6.0.2"
   }
 }

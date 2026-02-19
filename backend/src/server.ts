@@ -17,7 +17,16 @@ const swaggerOptions: swaggerJsdoc.Options = {
       version: '1.0.0',
       description: 'API REST CinéConnect'
     },
-    servers: [{ url: '/api', description: 'API' }]
+    servers: [{ url: '/api', description: 'API' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    }
   },
   apis: ['./src/routes/*.ts']
 }
