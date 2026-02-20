@@ -10,7 +10,8 @@
     "dev:backend": "pnpm --filter @cineconnect/backend run dev",
     "build": "pnpm --filter @cineconnect/shared run build && pnpm -r run build",
     "lint": "pnpm -r run lint",
-    "test": "pnpm -r run test"
+    "test": "pnpm -r run test",
+    "seed": "pnpm --filter @cineconnect/backend run seed"
   },
   "engines": {
     "node": ">=18"

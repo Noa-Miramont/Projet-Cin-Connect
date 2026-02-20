@@ -90,3 +90,11 @@ pnpm run dev:backend    # http://localhost:3000
 2. **Shared** — Types dans `shared/src/types/`.
 3. **DB** — Schéma Drizzle dans `backend/src/db/schema.ts`, migrations avec `pnpm run db:generate` / `pnpm run db:push`.
 4. **Backend** — Contrôleurs, services, repositories dans `backend/src/`.
+
+
+
+utilisateur test logins :
+
+user name : test
+email : noamiramont@gmail.com
+password : test1234
