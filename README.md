@@ -42,18 +42,18 @@ pnpm run dev:frontend   # http://localhost:5173
 pnpm run dev:backend    # http://localhost:3000
 ```
 
-- **Frontend** : http://localhost:5173  
-- **API** : http://localhost:3000  
-- **Swagger** : http://localhost:3000/api-docs  
+- **Frontend** : http://localhost:5173
+- **API** : http://localhost:3000
+- **Swagger** : http://localhost:3000/api-docs
 
 ## Scripts racine
 
-| Script | Description |
-|--------|-------------|
-| `pnpm run dev` | Lance frontend + backend (shared est buildé avant) |
-| `pnpm run build` | Build shared puis tous les packages |
-| `pnpm run lint` | Lint tous les packages |
-| `pnpm run test` | Tests dans tous les packages |
+| Script           | Description                                        |
+| ---------------- | -------------------------------------------------- |
+| `pnpm run dev`   | Lance frontend + backend (shared est buildé avant) |
+| `pnpm run build` | Build shared puis tous les packages                |
+| `pnpm run lint`  | Lint tous les packages                             |
+| `pnpm run test`  | Tests dans tous les packages                       |
 
 ## Backend & Base de données
 
@@ -64,6 +64,7 @@ pnpm run dev:backend    # http://localhost:3000
    - `PORT=3000` (optionnel)
 
 2. Créer la base et les tables avec Drizzle :
+
    ```bash
    cd backend && pnpm run db:push
    ```
@@ -91,10 +92,14 @@ pnpm run dev:backend    # http://localhost:3000
 3. **DB** — Schéma Drizzle dans `backend/src/db/schema.ts`, migrations avec `pnpm run db:generate` / `pnpm run db:push`.
 4. **Backend** — Contrôleurs, services, repositories dans `backend/src/`.
 
-
-
 utilisateur test logins :
 
 user name : test
 email : noamiramont@gmail.com
 password : test1234
+
+user name : test2
+email: maduzan.manmatharajah@gmail.com
+password: test1234
+
+"Erreur 401 corrige : Lors de la tentative de publication d’un avis, une erreur 401 « Non authentifié » se produisait ; après analyse du contrôleur des reviews, du middleware JWT, des routes et du frontend, le problème a été identifié comme un décalage entre les clés utilisées dans le localStorage : le token était enregistré sous la clé cineconnect_token dans AuthContext.tsx, mais récupéré avec la clé token dans api.ts, ce qui empêchait l’ajout du header Authorization à la requête et entraînait son rejet par le serveur ; la solution a donc consisté à harmoniser l’utilisation de la clé cineconnect_token partout dans l’application afin que le token soit correctement transmis et que la création d’un avis fonctionne sans erreur 401."
