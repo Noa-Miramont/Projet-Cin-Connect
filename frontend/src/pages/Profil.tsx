@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,10 +11,11 @@ export function ProfilPage() {
   const queryClient = useQueryClient()
   const [friendUsername, setFriendUsername] = useState('')
 
-  if (!user) {
-    navigate({ to: '/login' })
-    return null
-  }
+  useEffect(() => {
+    if (!user) {
+      navigate({ to: '/login' })
+    }
+  }, [user, navigate])
 
   const { data: reviews, isLoading: reviewsLoading } = useQuery({
     queryKey: ['users', 'me', 'reviews'],
@@ -40,6 +41,10 @@ export function ProfilPage() {
       queryClient.invalidateQueries({ queryKey: ['friends'] })
     }
   })
+
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">

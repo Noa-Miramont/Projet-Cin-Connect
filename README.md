@@ -98,3 +98,7 @@ utilisateur test logins :
 user name : test
 email : noamiramont@gmail.com
 password : test1234
+
+user name : test2
+email : noajoanps4@gmail.com
+password : test1234
