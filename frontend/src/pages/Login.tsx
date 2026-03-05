@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, logout } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  useEffect(() => {
+    logout({ redirect: false })
+  }, [logout])
 
   const mutation = useMutation({
     mutationFn: () => login(email, password),

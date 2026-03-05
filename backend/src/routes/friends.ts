@@ -42,6 +42,59 @@ router.post('/', jwtAuth, friendController.add)
 
 /**
  * @openapi
+ * /friends/requests/received:
+ *   get:
+ *     summary: Liste des demandes d'amis reçues (PENDING)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des demandes reçues
+ */
+router.get('/requests/received', jwtAuth, friendController.listReceivedRequests)
+
+/**
+ * @openapi
+ * /friends/requests/{id}/accept:
+ *   post:
+ *     summary: Accepter une demande d'ami
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Demande acceptée
+ *       404:
+ *         description: Demande introuvable
+ */
+router.post('/requests/:id/accept', jwtAuth, friendController.acceptRequest)
+
+/**
+ * @openapi
+ * /friends/requests/{id}:
+ *   delete:
+ *     summary: Refuser une demande d'ami
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       204:
+ *         description: Demande refusée
+ *       404:
+ *         description: Demande introuvable
+ */
+router.delete('/requests/:id', jwtAuth, friendController.declineRequest)
+
+/**
+ * @openapi
  * /friends/{id}:
  *   delete:
  *     summary: Retirer un ami

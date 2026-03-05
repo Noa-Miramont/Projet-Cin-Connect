@@ -1,8 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNotifications } from '@/contexts/NotificationsContext'
 
 export function Navbar() {
   const { user, logout, isLoading } = useAuth()
+  const { friendRequestsCount } = useNotifications()
 
   if (isLoading) {
     return (
@@ -40,9 +42,14 @@ export function Navbar() {
               </Link>
               <Link
                 to="/discussion"
-                className="text-slate-300 transition hover:text-white"
+                className="relative text-slate-300 transition hover:text-white"
               >
                 Discussion
+                {friendRequestsCount > 0 && (
+                  <span className="absolute -right-4 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold leading-5 text-white">
+                    {friendRequestsCount}
+                  </span>
+                )}
               </Link>
               <span className="text-slate-400">{user.username}</span>
               <button

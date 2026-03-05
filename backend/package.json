@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "test": "jest",
+    "friends:reset": "ts-node src/scripts/resetFriends.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "seed": "ts-node src/db/seed.ts"
