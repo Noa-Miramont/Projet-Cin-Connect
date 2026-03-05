@@ -23,10 +23,11 @@ export function DiscussionPage() {
   const socketRef = useRef<ReturnType<typeof io> | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  if (!user) {
-    navigate({ to: '/login' })
-    return null
-  }
+  useEffect(() => {
+    if (!user) {
+      navigate({ to: '/login' })
+    }
+  }, [user, navigate])
 
   const { data: friends } = useQuery({
     queryKey: ['friends'],
@@ -91,6 +92,10 @@ export function DiscussionPage() {
   }
 
   const selectedFriend = friends?.find((f) => f.friend_id === selectedFriendId)
+
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col px-4 py-8 md:flex-row md:gap-6">

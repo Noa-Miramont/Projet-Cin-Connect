@@ -99,7 +99,5 @@ email : noamiramont@gmail.com
 password : test1234
 
 user name : test2
-email: maduzan.manmatharajah@gmail.com
-password: test1234
-
-"Erreur 401 corrige : Lors de la tentative de publication d’un avis, une erreur 401 « Non authentifié » se produisait ; après analyse du contrôleur des reviews, du middleware JWT, des routes et du frontend, le problème a été identifié comme un décalage entre les clés utilisées dans le localStorage : le token était enregistré sous la clé cineconnect_token dans AuthContext.tsx, mais récupéré avec la clé token dans api.ts, ce qui empêchait l’ajout du header Authorization à la requête et entraînait son rejet par le serveur ; la solution a donc consisté à harmoniser l’utilisation de la clé cineconnect_token partout dans l’application afin que le token soit correctement transmis et que la création d’un avis fonctionne sans erreur 401."
+email : noajoanps4@gmail.com
+password : test1234
