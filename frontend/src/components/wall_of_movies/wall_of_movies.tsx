@@ -1,7 +1,21 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState } from 'react'
 import { useGesture } from '@use-gesture/react'
 
-type ImageItem = string | { src: string; alt?: string }
+type ImageItem =
+  | string
+  | {
+      id?: string
+      src: string
+      alt?: string
+      title?: string
+    }
+
+export type DomeGalleryOpenedItem = {
+  id?: string
+  src: string
+  alt: string
+  title?: string
+}
 
 type DomeGalleryProps = {
   images?: ImageItem[]
@@ -21,11 +35,16 @@ type DomeGalleryProps = {
   imageBorderRadius?: string
   openedImageBorderRadius?: string
   grayscale?: boolean
+  onOpen?: (item: DomeGalleryOpenedItem) => void
+  onClose?: () => void
+  overlayContent?: (item: DomeGalleryOpenedItem) => React.ReactNode
 }
 
 type ItemDef = {
+  id?: string
   src: string
   alt: string
+  title?: string
   x: number
   y: number
   sizeX: number
@@ -104,9 +123,14 @@ function buildItems(pool: ImageItem[], seg: number): ItemDef[] {
 
   const normalizedImages = pool.map(image => {
     if (typeof image === 'string') {
-      return { src: image, alt: '' }
+      return { src: image, alt: '' } as ItemDef
     }
-    return { src: image.src || '', alt: image.alt || '' }
+    return {
+      id: image.id,
+      src: image.src || '',
+      alt: image.alt || image.title || '',
+      title: image.title
+    } as ItemDef
   })
 
   const usedImages = Array.from({ length: totalSlots }, (_, i) => normalizedImages[i % normalizedImages.length])
@@ -127,7 +151,9 @@ function buildItems(pool: ImageItem[], seg: number): ItemDef[] {
   return coords.map((c, i) => ({
     ...c,
     src: usedImages[i].src,
-    alt: usedImages[i].alt
+    alt: usedImages[i].alt,
+    id: usedImages[i].id,
+    title: usedImages[i].title
   }))
 }
 
@@ -145,7 +171,7 @@ export default function DomeGallery({
   minRadius = 600,
   maxRadius = Infinity,
   padFactor = 0.25,
-  overlayBlurColor = '#060010',
+  overlayBlurColor = '#000000',
   maxVerticalRotationDeg = DEFAULTS.maxVerticalRotationDeg,
   dragSensitivity = DEFAULTS.dragSensitivity,
   enlargeTransitionMs = DEFAULTS.enlargeTransitionMs,
@@ -155,7 +181,10 @@ export default function DomeGallery({
   openedImageHeight = '400px',
   imageBorderRadius = '30px',
   openedImageBorderRadius = '30px',
-  grayscale = true
+  grayscale = true,
+  onOpen,
+  onClose,
+  overlayContent
 }: DomeGalleryProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
@@ -163,6 +192,7 @@ export default function DomeGallery({
   const frameRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<HTMLDivElement>(null)
   const scrimRef = useRef<HTMLDivElement>(null)
+  const closeFnRef = useRef<(() => void) | null>(null)
   const focusedElRef = useRef<HTMLElement | null>(null)
   const originalTilePositionRef = useRef<{
     left: number
@@ -198,6 +228,7 @@ export default function DomeGallery({
   }, [])
 
   const [invalidSrcs, setInvalidSrcs] = useState<Set<string>>(new Set())
+  const [openedItem, setOpenedItem] = useState<DomeGalleryOpenedItem | null>(null)
 
   const filteredImages = useMemo(
     () =>
@@ -409,12 +440,17 @@ export default function DomeGallery({
       overlay.style.cssText = `position:absolute; left:${frameR.left - mainR.left}px; top:${frameR.top - mainR.top}px; width:${frameR.width}px; height:${frameR.height}px; opacity:0; z-index:30; will-change:transform,opacity; transform-origin:top left; transition:transform ${enlargeTransitionMs}ms ease, opacity ${enlargeTransitionMs}ms ease; border-radius:${openedImageBorderRadius}; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35);`
       const rawSrc = parent.dataset.src || (el.querySelector('img') as HTMLImageElement)?.src || ''
       const rawAlt = parent.dataset.alt || (el.querySelector('img') as HTMLImageElement)?.alt || ''
+      const rawId = parent.dataset.id || undefined
+      const rawTitle = parent.dataset.title || undefined
       const img = document.createElement('img')
       img.src = rawSrc
       img.alt = rawAlt
-      img.style.cssText = `width:100%; height:100%; object-fit:cover; filter:${grayscale ? 'grayscale(1)' : 'none'};`
+      img.style.cssText = `width:100%; height:100%; object-fit:contain; background:#000; filter:${grayscale ? 'grayscale(1)' : 'none'};`
       overlay.appendChild(img)
       viewerRef.current!.appendChild(overlay)
+      const nextOpened: DomeGalleryOpenedItem = { id: rawId, src: rawSrc, alt: rawAlt, title: rawTitle }
+      setOpenedItem(nextOpened)
+      onOpen?.(nextOpened)
       const tx0 = tileR.left - frameR.left
       const ty0 = tileR.top - frameR.top
       const sx0 = tileR.width / frameR.width
@@ -578,7 +614,22 @@ export default function DomeGallery({
       if (!el) return
       const parent = el.parentElement as HTMLElement
       const overlay = viewerRef.current?.querySelector('.enlarge') as HTMLElement | null
-      if (!overlay) return
+      if (!overlay) {
+        parent.style.setProperty('--rot-y-delta', `0deg`)
+        parent.style.setProperty('--rot-x-delta', `0deg`)
+        const refDiv = parent.querySelector('.item__image--reference') as HTMLElement | null
+        if (refDiv) refDiv.remove()
+        el.style.visibility = ''
+        el.style.zIndex = '0'
+        focusedElRef.current = null
+        originalTilePositionRef.current = null
+        rootRef.current?.removeAttribute('data-enlarging')
+        openingRef.current = false
+        setOpenedItem(null)
+        onClose?.()
+        document.body.classList.remove('dg-scroll-lock')
+        return
+      }
 
       const refDiv = parent.querySelector('.item__image--reference') as HTMLElement | null
 
@@ -593,10 +644,29 @@ export default function DomeGallery({
         focusedElRef.current = null
         rootRef.current?.removeAttribute('data-enlarging')
         openingRef.current = false
+        setOpenedItem(null)
+        onClose?.()
         return
       }
 
       const currentRect = overlay.getBoundingClientRect()
+      const shouldInstantClose = currentRect.width <= 0 || currentRect.height <= 0
+      if (shouldInstantClose) {
+        overlay.remove()
+        if (refDiv) refDiv.remove()
+        parent.style.setProperty('--rot-y-delta', `0deg`)
+        parent.style.setProperty('--rot-x-delta', `0deg`)
+        el.style.visibility = ''
+        el.style.zIndex = '0'
+        focusedElRef.current = null
+        originalTilePositionRef.current = null
+        rootRef.current?.removeAttribute('data-enlarging')
+        openingRef.current = false
+        setOpenedItem(null)
+        onClose?.()
+        document.body.classList.remove('dg-scroll-lock')
+        return
+      }
       const rootRect = rootRef.current!.getBoundingClientRect()
 
       const originalPosRelativeToRoot = {
@@ -635,7 +705,7 @@ export default function DomeGallery({
       const originalImg = overlay.querySelector('img')
       if (originalImg) {
         const img = originalImg.cloneNode() as HTMLImageElement
-        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;'
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: contain; background: #000'
         animatingOverlay.appendChild(img)
       }
 
@@ -680,6 +750,8 @@ export default function DomeGallery({
                 el.style.transition = ''
                 el.style.opacity = ''
                 openingRef.current = false
+                setOpenedItem(null)
+                onClose?.()
                 if (!draggingRef.current && rootRef.current?.getAttribute('data-enlarging') !== 'true') {
                   document.body.classList.remove('dg-scroll-lock')
                 }
@@ -694,6 +766,7 @@ export default function DomeGallery({
       })
     }
 
+    closeFnRef.current = close
     scrim.addEventListener('click', close)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close()
@@ -701,10 +774,11 @@ export default function DomeGallery({
     window.addEventListener('keydown', onKey)
 
     return () => {
+      closeFnRef.current = null
       scrim.removeEventListener('click', close)
       window.removeEventListener('keydown', onKey)
     }
-  }, [enlargeTransitionMs, openedImageBorderRadius, grayscale])
+  }, [enlargeTransitionMs, openedImageBorderRadius, grayscale, onClose])
 
   useEffect(() => {
     return () => {
@@ -764,6 +838,13 @@ export default function DomeGallery({
     .sphere-root[data-enlarging="true"] .scrim {
       opacity: 1 !important;
       pointer-events: all !important;
+    }
+
+    @media (max-width: 640px) {
+      .sphere-root[data-enlarging="true"] .enlarge,
+      .sphere-root[data-enlarging="true"] .enlarge-closing {
+        display: none !important;
+      }
     }
     
     @media (max-aspect-ratio: 1/1) {
@@ -826,6 +907,8 @@ export default function DomeGallery({
                   className="sphere-item absolute m-auto"
                   data-src={it.src}
                   data-alt={it.alt}
+                  data-id={it.id}
+                  data-title={it.title ?? it.alt}
                   data-offset-x={it.x}
                   data-offset-y={it.y}
                   data-size-x={it.sizeX}
@@ -941,6 +1024,28 @@ export default function DomeGallery({
                 borderRadius: `var(--enlarge-radius, ${openedImageBorderRadius})`
               }}
             />
+            {openedItem ? (
+              <div className="absolute inset-0 z-40 pointer-events-none flex items-start justify-center pt-4">
+                <div className="pointer-events-auto w-full max-w-6xl px-3 sm:px-4 md:px-0">
+                  <div className="mx-auto w-full">
+                    <div className="mb-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => closeFnRef.current?.()}
+                        className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur hover:border-amber-600/50 hover:text-white"
+                        aria-label="Fermer le film"
+                      >
+                        Fermer
+                      </button>
+                    </div>
+                    <h2 className="mb-2 text-center text-3xl font-extrabold tracking-tight text-white drop-shadow">
+                      {openedItem.title || openedItem.alt}
+                    </h2>
+                    {overlayContent ? overlayContent(openedItem) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </main>
       </div>

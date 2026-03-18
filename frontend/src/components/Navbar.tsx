@@ -1,76 +1,75 @@
-import { Link } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
+import { StaggeredMenu, type StaggeredMenuItem } from '@/components/Staggered Menu/Staggered_Menu'
 
 export function Navbar() {
-  const { user, logout, isLoading } = useAuth()
+  const { user, isLoading } = useAuth()
 
   if (isLoading) {
     return (
-      <nav className="border-b border-slate-800 bg-slate-900/50 px-4 py-3">
+      <header className="border-b border-zinc-800 bg-zinc-950/70 px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link to="/" className="text-lg font-semibold text-white">
-            CinéConnect
-          </Link>
-          <span className="text-slate-500">Chargement…</span>
+          <span className="text-lg font-semibold text-white">CinéConnect</span>
+          <span className="text-zinc-500">Chargement…</span>
         </div>
-      </nav>
+      </header>
     )
   }
 
+  const baseItems: StaggeredMenuItem[] = [
+    {
+      label: 'Accueil',
+      ariaLabel: "Aller à la page d'accueil",
+      link: '/'
+    },
+    {
+      label: 'Films',
+      ariaLabel: 'Aller à la page des films',
+      link: '/films'
+    }
+  ]
+
+  const items: StaggeredMenuItem[] = user
+    ? [
+        ...baseItems,
+        {
+          label: 'Social',
+          ariaLabel: 'Aller à la page de discussion',
+          link: '/discussion'
+        },
+        {
+          label: 'Profil',
+          ariaLabel: 'Aller à la page profil',
+          link: '/profil'
+        }
+      ]
+    : [
+        ...baseItems,
+        {
+          label: 'Connexion',
+          ariaLabel: 'Aller à la page de connexion',
+          link: '/login'
+        },
+        {
+          label: 'Inscription',
+          ariaLabel: "Aller à la page d'inscription",
+          link: '/register'
+        }
+      ]
+
   return (
-    <nav className="border-b border-slate-800 bg-slate-900/50 px-4 py-3">
-      <div className="mx-auto flex max-w-6xl items-center justify-between">
-        <Link to="/" className="text-lg font-semibold text-white">
-          CinéConnect
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link
-            to="/films"
-            className="text-slate-300 transition hover:text-white"
-          >
-            Films
-          </Link>
-          {user ? (
-            <>
-              <Link
-                to="/profil"
-                className="text-slate-300 transition hover:text-white"
-              >
-                Profil
-              </Link>
-              <Link
-                to="/discussion"
-                className="text-slate-300 transition hover:text-white"
-              >
-                Discussion
-              </Link>
-              <span className="text-slate-400">{user.username}</span>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded bg-slate-700 px-3 py-1.5 text-sm text-slate-200 transition hover:bg-slate-600"
-              >
-                Déconnexion
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="text-slate-300 transition hover:text-white"
-              >
-                Connexion
-              </Link>
-              <Link
-                to="/register"
-                className="rounded bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-amber-500"
-              >
-                Inscription
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </nav>
+    <header className="relative z-40 border-b border-zinc-800 bg-zinc-950/70">
+      <StaggeredMenu
+        isFixed={false}
+        position="right"
+        items={items}
+        displaySocials={false}
+        displayItemNumbering={false}
+        className="h-16"
+        logoUrl="/src/assets/logos/reactbits-gh-white.svg"
+        menuButtonColor="#e9e9ef"
+        openMenuButtonColor="#111111"
+        changeMenuColorOnOpen={true}
+      />
+    </header>
   )
 }
