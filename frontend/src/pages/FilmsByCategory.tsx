@@ -24,8 +24,8 @@ export function FilmsByCategoryPage() {
   if (isInvalidCategory) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-12 text-center">
-        <p className="text-slate-400">Catégorie introuvable.</p>
-        <Link to="/films" className="mt-4 inline-block text-amber-400 hover:underline">
+        <p className="text-zinc-400">Catégorie introuvable.</p>
+        <Link to="/films" className="mt-4 inline-block text-zinc-200 hover:underline">
           Retour aux films
         </Link>
       </div>
@@ -34,7 +34,7 @@ export function FilmsByCategoryPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <nav className="flex items-center gap-2 text-sm text-slate-400">
+      <nav className="flex items-center gap-2 text-sm text-zinc-400">
         <Link to="/" className="hover:text-white">Home</Link>
         <span>/</span>
         <Link to="/films" className="hover:text-white">Films</Link>
@@ -50,7 +50,7 @@ export function FilmsByCategoryPage() {
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="aspect-[2/3] animate-pulse rounded-lg bg-slate-800"
+              className="aspect-[2/3] animate-pulse rounded-lg bg-zinc-900"
             />
           ))}
         </div>

@@ -22,12 +22,29 @@ export function DiscussionPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const socketRef = useRef<ReturnType<typeof io> | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const draftConsumedRef = useRef(false)
 
   useEffect(() => {
     if (!user) {
       navigate({ to: '/login' })
     }
   }, [user, navigate])
+
+  useEffect(() => {
+    if (!user) return
+    if (draftConsumedRef.current) return
+    const raw = sessionStorage.getItem('cineconnect_dm_draft')
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(raw) as { friendId?: string; content?: string }
+      if (parsed.friendId) setSelectedFriendId(parsed.friendId)
+      if (parsed.content) setInput(parsed.content)
+    } catch {
+    } finally {
+      sessionStorage.removeItem('cineconnect_dm_draft')
+      draftConsumedRef.current = true
+    }
+  }, [user])
 
   const { data: friends } = useQuery({
     queryKey: ['friends'],
@@ -99,8 +116,8 @@ export function DiscussionPage() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col px-4 py-8 md:flex-row md:gap-6">
-      <aside className="w-full rounded-lg border border-slate-800 bg-slate-900/50 md:w-64">
-        <h2 className="border-b border-slate-800 p-4 font-semibold text-white">
+      <aside className="w-full rounded-lg border border-zinc-800 bg-zinc-900/50 md:w-64">
+        <h2 className="border-b border-zinc-800 p-4 font-semibold text-white">
           Amis
         </h2>
         <ul className="max-h-96 overflow-y-auto">
@@ -111,8 +128,8 @@ export function DiscussionPage() {
                 onClick={() => setSelectedFriendId(f.friend_id)}
                 className={`w-full px-4 py-3 text-left transition ${
                   selectedFriendId === f.friend_id
-                    ? 'bg-amber-600/20 text-amber-400'
-                    : 'text-slate-300 hover:bg-slate-800'
+                    ? 'bg-zinc-100/10 text-white'
+                    : 'text-zinc-300 hover:bg-zinc-950'
                 }`}
               >
                 {f.username}
@@ -122,10 +139,10 @@ export function DiscussionPage() {
         </ul>
       </aside>
 
-      <div className="mt-6 flex flex-1 flex-col rounded-lg border border-slate-800 bg-slate-900/50 md:mt-0">
+      <div className="mt-6 flex flex-1 flex-col rounded-lg border border-zinc-800 bg-zinc-900/50 md:mt-0">
         {selectedFriendId ? (
           <>
-            <div className="border-b border-slate-800 p-4 font-medium text-white">
+            <div className="border-b border-zinc-800 p-4 font-medium text-white">
               Discussion avec {selectedFriend?.username ?? '…'}
             </div>
             <div className="flex flex-1 flex-col overflow-hidden">
@@ -140,8 +157,8 @@ export function DiscussionPage() {
                     <div
                       className={`max-w-[80%] rounded-lg px-3 py-2 ${
                         m.sender_id === user.id
-                          ? 'bg-amber-600/30 text-white'
-                          : 'bg-slate-800 text-slate-200'
+                          ? 'bg-zinc-100/10 text-white'
+                          : 'bg-zinc-950 text-zinc-200'
                       }`}
                     >
                       <p className="text-sm">{m.content}</p>
@@ -156,7 +173,7 @@ export function DiscussionPage() {
                 ))}
                 <div ref={bottomRef} />
               </div>
-              <div className="flex gap-2 border-t border-slate-800 p-4">
+              <div className="flex gap-2 border-t border-zinc-800 p-4">
                 <input
                   type="text"
                   value={input}
@@ -165,13 +182,13 @@ export function DiscussionPage() {
                     if (e.key === 'Enter') sendMessage()
                   }}
                   placeholder="Votre message…"
-                  className="flex-1 rounded border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                  className="flex-1 rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
                 />
                 <button
                   type="button"
                   onClick={sendMessage}
                   disabled={!input.trim()}
-                  className="rounded bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+                  className="rounded bg-zinc-100 px-4 py-2 font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
                 >
                   Envoyer
                 </button>
@@ -179,7 +196,7 @@ export function DiscussionPage() {
             </div>
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center p-8 text-slate-500">
+          <div className="flex flex-1 items-center justify-center p-8 text-zinc-500">
             Sélectionnez un ami pour discuter
           </div>
         )}

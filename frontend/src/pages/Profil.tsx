@@ -50,10 +50,10 @@ export function ProfilPage() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-2xl font-bold text-white">Mon profil</h1>
 
-      <section className="mt-8 rounded-lg border border-slate-800 bg-slate-900/50 p-6">
+      <section className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <h2 className="text-lg font-semibold text-white">Informations</h2>
-        <p className="mt-2 text-slate-300">Pseudo : {user.username}</p>
-        <p className="text-slate-300">Email : {user.email}</p>
+        <p className="mt-2 text-zinc-300">Pseudo : {user.username}</p>
+        <p className="text-zinc-300">Email : {user.email}</p>
       </section>
 
       <section className="mt-8">
@@ -63,7 +63,7 @@ export function ProfilPage() {
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="h-16 animate-pulse rounded-lg bg-slate-800"
+                className="h-16 animate-pulse rounded-lg bg-zinc-900"
               />
             ))}
           </div>
@@ -72,22 +72,22 @@ export function ProfilPage() {
             {(reviews ?? []).map((r) => (
               <li
                 key={r.id}
-                className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 p-4"
+                className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
               >
                 <div>
                   <Link
                     to="/film/$id"
                     params={{ id: r.film_id }}
-                    className="font-medium text-amber-400 hover:underline"
+                    className="font-medium text-zinc-200 hover:underline"
                   >
                     {r.film_title}
                   </Link>
-                  <span className="ml-2 text-amber-400">{r.rating}/5</span>
+                  <span className="ml-2 text-zinc-300">{r.rating}/5</span>
                 </div>
                 <Link
                   to="/film/$id"
                   params={{ id: r.film_id }}
-                  className="text-sm text-slate-400 hover:text-white"
+                  className="text-sm text-zinc-400 hover:text-white"
                 >
                   Voir le film
                 </Link>
@@ -108,13 +108,13 @@ export function ProfilPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') addFriendMutation.mutate(friendUsername)
             }}
-            className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
           />
           <button
             type="button"
             onClick={() => addFriendMutation.mutate(friendUsername)}
             disabled={addFriendMutation.isPending || !friendUsername.trim()}
-            className="rounded bg-amber-600 px-4 py-2 text-white hover:bg-amber-500 disabled:opacity-50"
+            className="rounded bg-zinc-100 px-4 py-2 text-zinc-950 hover:bg-white disabled:opacity-50"
           >
             Ajouter
           </button>
@@ -129,7 +129,7 @@ export function ProfilPage() {
             {[...Array(2)].map((_, i) => (
               <div
                 key={i}
-                className="h-12 animate-pulse rounded-lg bg-slate-800"
+                className="h-12 animate-pulse rounded-lg bg-zinc-900"
               />
             ))}
           </div>
@@ -138,7 +138,7 @@ export function ProfilPage() {
             {(friends ?? []).map((f) => (
               <li
                 key={f.id}
-                className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3"
               >
                 <span className="font-medium text-white">{f.username}</span>
                 <button
