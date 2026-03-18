@@ -65,7 +65,7 @@ export function Navbar() {
         displaySocials={false}
         displayItemNumbering={false}
         className="h-16"
-        logoUrl="/src/assets/logos/reactbits-gh-white.svg"
+        logoUrl="/logo.svg"
         menuButtonColor="#e9e9ef"
         openMenuButtonColor="#111111"
         changeMenuColorOnOpen={true}
