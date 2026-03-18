@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { fetchFilm, fetchFilms, type FilmDetail } from '@/services/films'
 import { fetchCategories } from '@/services/categories'
-import { createReview } from '@/services/reviews'
+import { createReview, replaceReview } from '@/services/reviews'
 import { fetchFriends } from '@/services/friends'
 import { useAuth } from '@/contexts/AuthContext'
 import DomeGallery from '@/components/wall_of_movies/wall_of_movies'
@@ -50,6 +50,8 @@ function FilmOverlayPanel({
 
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
+  const [replaceOpen, setReplaceOpen] = useState(false)
+  const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
   const [shareFriendId, setShareFriendId] = useState<string | null>(null)
   const [shareComment, setShareComment] = useState('')
 
@@ -76,6 +78,30 @@ function FilmOverlayPanel({
       queryClient.invalidateQueries({ queryKey: ['film', filmId] })
       setComment('')
       setRating(0)
+      setCreateErrorStatus(null)
+    },
+    onError: (err) => {
+      const status = (err as any)?.response?.status as number | undefined
+      setCreateErrorStatus(status ?? null)
+      if (status === 409) {
+        setReplaceOpen(true)
+      }
+    }
+  })
+
+  const updateReviewMutation = useMutation({
+    mutationFn: () =>
+      replaceReview({
+        filmId,
+        rating,
+        comment: comment.trim() ? comment.trim() : undefined
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['film', filmId] })
+      setComment('')
+      setRating(0)
+      setReplaceOpen(false)
+      setCreateErrorStatus(null)
     }
   })
 
@@ -168,9 +194,10 @@ function FilmOverlayPanel({
             >
               {createReviewMutation.isPending ? 'Envoi…' : 'Publier'}
             </button>
-            {createReviewMutation.isError ? (
+            {createReviewMutation.isError && createErrorStatus !== 409 ? (
               <p className="text-sm text-red-400">
-                {(createReviewMutation.error as Error).message}
+                {(createReviewMutation.error as any)?.response?.data?.error ??
+                  (createReviewMutation.error as Error).message}
               </p>
             ) : null}
           </div>
@@ -217,6 +244,47 @@ function FilmOverlayPanel({
       </div>
         </div>
       </div>
+      {replaceOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-none border border-zinc-800 bg-zinc-950 p-6">
+            <h3 className="text-center text-2xl font-semibold text-white">
+              Vous avez déjà noté ce film
+            </h3>
+            <p className="mt-3 text-center text-sm text-zinc-300">
+              Si vous envoyez une nouvelle note, votre ancienne note sera remplacée
+              par la nouvelle.
+            </p>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => updateReviewMutation.mutate()}
+                disabled={updateReviewMutation.isPending}
+                className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+              >
+                {updateReviewMutation.isPending
+                  ? 'Remplacement…'
+                  : 'Remplacer ma note'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplaceOpen(false)}
+                disabled={updateReviewMutation.isPending}
+                className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+
+            {updateReviewMutation.isError ? (
+              <p className="mt-4 text-center text-sm text-red-400">
+                {(updateReviewMutation.error as any)?.response?.data?.error ??
+                  (updateReviewMutation.error as Error).message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

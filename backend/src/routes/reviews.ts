@@ -47,4 +47,35 @@ router.get('/', reviewController.list)
  */
 router.post('/', jwtAuth, reviewController.create)
 
+/**
+ * @openapi
+ * /reviews/{filmId}:
+ *   put:
+ *     summary: Remplacer un avis (authentifié)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filmId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [rating]
+ *             properties:
+ *               rating: { type: integer, minimum: 1, maximum: 5 }
+ *               comment: { type: string }
+ *     responses:
+ *       200:
+ *         description: Avis remplacé
+ *       400:
+ *         description: Mauvaise requête
+ *       401:
+ *         description: Non authentifié
+ */
+router.put('/:filmId', jwtAuth, reviewController.replace)
+
 export { router as reviewsRouter }

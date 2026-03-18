@@ -16,6 +16,38 @@ export const reviewService = {
     return review
   },
 
+  async replace(
+    userId: string,
+    data: { filmId: string; rating: number; comment?: string }
+  ) {
+    if (data.rating < 1 || data.rating > 5) {
+      throw new Error('La note doit être entre 1 et 5')
+    }
+
+    const existing = await reviewRepository.findUserReviewForFilm(
+      userId,
+      data.filmId
+    )
+
+    if (!existing) {
+      return reviewRepository.create({
+        user_id: userId,
+        film_id: data.filmId,
+        rating: data.rating,
+        comment: data.comment
+      })
+    }
+
+    const updated = await reviewRepository.updateByUserAndFilm({
+      userId,
+      filmId: data.filmId,
+      rating: data.rating,
+      comment: data.comment
+    })
+
+    return updated
+  },
+
   async listByFilm(filmId: string) {
     return reviewRepository.findByFilmId(filmId)
   },

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchFilm } from '@/services/films'
-import { createReview } from '@/services/reviews'
+import { createReview, replaceReview } from '@/services/reviews'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function FilmDetailPage() {
@@ -11,6 +11,8 @@ export function FilmDetailPage() {
   const { user } = useAuth()
   const [rating, setRating] = useState(3)
   const [comment, setComment] = useState('')
+  const [replaceOpen, setReplaceOpen] = useState(false)
+  const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
 
   const { data: film, isLoading, error } = useQuery({
     queryKey: ['film', id],
@@ -24,6 +26,30 @@ export function FilmDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['film', id] })
       setComment('')
       setRating(3)
+      setCreateErrorStatus(null)
+    },
+    onError: (err) => {
+      const status = (err as any)?.response?.status as number | undefined
+      setCreateErrorStatus(status ?? null)
+      if (status === 409) {
+        setReplaceOpen(true)
+      }
+    }
+  })
+
+  const updateReviewMutation = useMutation({
+    mutationFn: () =>
+      replaceReview({
+        filmId: id,
+        rating,
+        comment: comment || undefined
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['film', id] })
+      setComment('')
+      setRating(3)
+      setReplaceOpen(false)
+      setCreateErrorStatus(null)
     }
   })
 
@@ -49,7 +75,8 @@ export function FilmDetailPage() {
   const reviews = film.reviews ?? []
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <>
+      <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="grid gap-8 md:grid-cols-[280px_1fr]">
         <div>
           <div className="aspect-[2/3] overflow-hidden rounded-lg bg-zinc-900">
@@ -142,11 +169,12 @@ export function FilmDetailPage() {
                 >
                   {createReviewMutation.isPending ? 'Envoi…' : 'Publier'}
                 </button>
-                {createReviewMutation.isError && (
+                {createReviewMutation.isError && createErrorStatus !== 409 ? (
                   <p className="text-sm text-red-400">
-                    {(createReviewMutation.error as Error).message}
+                    {(createReviewMutation.error as any)?.response?.data?.error ??
+                      (createReviewMutation.error as Error).message}
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
           )}
@@ -162,5 +190,48 @@ export function FilmDetailPage() {
         </div>
       </div>
     </div>
+
+      {replaceOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-none border border-zinc-800 bg-zinc-950 p-6">
+            <h3 className="text-center text-2xl font-semibold text-white">
+              Vous avez déjà noté ce film
+            </h3>
+            <p className="mt-3 text-center text-sm text-zinc-300">
+              Si vous envoyez une nouvelle note, votre ancienne note sera remplacée
+              par la nouvelle.
+            </p>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => updateReviewMutation.mutate()}
+                disabled={updateReviewMutation.isPending}
+                className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+              >
+                {updateReviewMutation.isPending
+                  ? 'Remplacement…'
+                  : 'Remplacer ma note'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReplaceOpen(false)}
+                disabled={updateReviewMutation.isPending}
+                className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+
+            {updateReviewMutation.isError ? (
+              <p className="mt-4 text-center text-sm text-red-400">
+                {(updateReviewMutation.error as any)?.response?.data?.error ??
+                  (updateReviewMutation.error as Error).message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }

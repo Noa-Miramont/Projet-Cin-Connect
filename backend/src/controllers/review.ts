@@ -26,6 +26,31 @@ export const reviewController = {
     }
   },
 
+  async replace(req: AuthRequest, res: Response) {
+    const user = req.user
+    if (!user) return res.status(401).json({ error: 'Non authentifié' })
+
+    try {
+      const filmId = req.params.filmId
+      const { rating, comment } = req.body
+      if (!filmId || rating == null) {
+        return res.status(400).json({ error: 'filmId et rating requis' })
+      }
+
+      const review = await reviewService.replace(user.id, {
+        filmId,
+        rating: Number(rating),
+        comment
+      })
+
+      res.status(200).json(review)
+    } catch (err) {
+      const msg = (err as Error).message
+      if (msg.includes('entre 1 et 5')) return res.status(400).json({ error: msg })
+      res.status(500).json({ error: msg })
+    }
+  },
+
   async list(req: Request, res: Response) {
     try {
       const filmId = req.query.filmId as string

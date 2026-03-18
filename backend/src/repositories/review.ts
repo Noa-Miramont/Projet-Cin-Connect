@@ -13,6 +13,29 @@ export const reviewRepository = {
     return review
   },
 
+  async updateByUserAndFilm(data: {
+    userId: string
+    filmId: string
+    rating: number
+    comment?: string
+  }) {
+    const [updated] = await db
+      .update(reviews)
+      .set({
+        rating: data.rating,
+        comment: data.comment ?? null
+      })
+      .where(
+        and(
+          eq(reviews.user_id, data.userId),
+          eq(reviews.film_id, data.filmId)
+        )
+      )
+      .returning()
+
+    return updated
+  },
+
   async findByFilmId(filmId: string) {
     return db
       .select({

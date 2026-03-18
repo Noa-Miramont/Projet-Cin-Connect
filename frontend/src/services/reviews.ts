@@ -25,3 +25,15 @@ export async function createReview(params: {
   const { data } = await api.post<Review>('/reviews', params)
   return data
 }
+
+export async function replaceReview(params: {
+  filmId: string
+  rating: number
+  comment?: string
+}): Promise<Review> {
+  const { data } = await api.put<Review>(`/reviews/${params.filmId}`, {
+    rating: params.rating,
+    comment: params.comment
+  })
+  return data
+}
