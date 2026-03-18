@@ -56,4 +56,11 @@
     --chart-4: 0 0% 50%;
     --chart-5: 0 0% 40%
   }
+
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'] {
+    border-radius: 0 !important;
+  }
 }

@@ -1027,17 +1027,16 @@ export default function DomeGallery({
             {openedItem ? (
               <div className="absolute inset-0 z-40 pointer-events-none flex items-start justify-center pt-4">
                 <div className="pointer-events-auto w-full max-w-6xl px-3 sm:px-4 md:px-0">
-                  <div className="mx-auto w-full">
-                    <div className="mb-2 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => closeFnRef.current?.()}
-                        className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur hover:border-amber-600/50 hover:text-white"
-                        aria-label="Fermer le film"
-                      >
-                        Fermer
-                      </button>
-                    </div>
+                  <div className="relative mx-auto w-full">
+                    <button
+                      type="button"
+                      onClick={() => closeFnRef.current?.()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-0 z-50 rounded-none border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur hover:border-amber-600/50 hover:text-white pointer-events-auto"
+                      aria-label="Fermer le film"
+                    >
+                      Fermer
+                    </button>
                     <h2 className="mb-2 text-center text-3xl font-extrabold tracking-tight text-white drop-shadow">
                       {openedItem.title || openedItem.alt}
                     </h2>

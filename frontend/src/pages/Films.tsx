@@ -99,11 +99,11 @@ function FilmOverlayPanel({
     <div className="mx-auto w-full max-w-9xl">
       <div className="max-h-[calc(100vh-220px)] w-full overflow-y-auto pr-1 md:max-h-none md:overflow-visible">
         <div className="flex w-full flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-12">
-          <div className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
+          <div className="w-full rounded-non border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-base font-semibold text-white">Commentaires</h3>
           {averageRating != null ? (
-            <div className="text-sm text-zinc-300">
+            <div className="text-sm text-zinc-300">=
               Note moyenne: {averageRating.toFixed(1)} / 5
             </div>
           ) : (
@@ -113,8 +113,8 @@ function FilmOverlayPanel({
 
         {isLoading ? (
           <div className="mt-4 space-y-3">
-            <div className="h-16 animate-pulse rounded-lg bg-zinc-800/60" />
-            <div className="h-16 animate-pulse rounded-lg bg-zinc-800/60" />
+            <div className="h-16 animate-pulse rounded-none bg-zinc-800/60" />
+            <div className="h-16 animate-pulse rounded-none bg-zinc-800/60" />
           </div>
         ) : (
           <ul className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
@@ -124,7 +124,7 @@ function FilmOverlayPanel({
               reviews.map((r) => (
                 <li
                   key={r.id}
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
+                  className="rounded-none border border-zinc-800 bg-zinc-900/50 p-3"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-white">{r.username}</span>
@@ -145,7 +145,7 @@ function FilmOverlayPanel({
 
           <div className="hidden md:block md:w-[420px] md:shrink-0" />
 
-          <div className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
+          <div className="w-full rounded-none border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
         <h3 className="text-base font-semibold text-white">Votre avis</h3>
         {user ? (
           <div className="mt-3 space-y-3">
@@ -185,7 +185,7 @@ function FilmOverlayPanel({
               <select
                 value={shareFriendId ?? ''}
                 onChange={(e) => setShareFriendId(e.target.value || null)}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
+                className="w-full rounded-none border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
               >
                 <option value="">Choisir un ami</option>
                 {(friends ?? []).map((f) => (
@@ -199,7 +199,7 @@ function FilmOverlayPanel({
                 onChange={(e) => setShareComment(e.target.value)}
                 rows={2}
                 placeholder="Ajouter un commentaire pour votre ami (optionnel)"
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
+                className="w-full rounded-none border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
               />
               <button
                 type="button"
@@ -270,7 +270,7 @@ export function FilmsPage() {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-10 w-20 animate-pulse rounded-lg bg-zinc-800"
+                  className="h-10 w-20 animate-pulse rounded-none bg-zinc-800"
                 />
               ))}
             </div>
@@ -279,7 +279,7 @@ export function FilmsPage() {
               <button
                 type="button"
                 onClick={() => setSelectedCategoryId(null)}
-                className={`rounded-lg border px-4 py-2 text-sm transition ${
+                className={`rounded-none border px-4 py-2 text-sm transition ${
                   selectedCategoryId === null
                     ? 'border-zinc-500/60 bg-zinc-100/10 text-white'
                     : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-500/60 hover:text-white'
@@ -292,7 +292,7 @@ export function FilmsPage() {
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition ${
+                  className={`rounded-none border px-4 py-2 text-sm transition ${
                     selectedCategoryId === cat.id
                       ? 'border-zinc-500/60 bg-zinc-100/10 text-white'
                       : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-500/60 hover:text-white'
