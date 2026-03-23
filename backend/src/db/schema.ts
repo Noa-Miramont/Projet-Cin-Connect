@@ -1,11 +1,12 @@
 import {
   pgTable,
+  pgEnum,
   uuid,
   varchar,
   text,
   integer,
   timestamp,
-  primaryKey
+  uniqueIndex
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -45,15 +46,32 @@ export const reviews = pgTable('reviews', {
   created_at: timestamp('created_at').defaultNow().notNull()
 })
 
-export const friends = pgTable('friends', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  user_id: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  friend_id: uuid('friend_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' })
-})
+export const friendStatusEnum = pgEnum('friend_status', [
+  'PENDING',
+  'ACCEPTED',
+  'DECLINED'
+])
+
+export const friends = pgTable(
+  'friends',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    friend_id: uuid('friend_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: friendStatusEnum('status').notNull().default('PENDING'),
+    created_at: timestamp('created_at').defaultNow().notNull()
+  },
+  (table) => ({
+    userFriendUnique: uniqueIndex('friends_user_friend_unique').on(
+      table.user_id,
+      table.friend_id
+    )
+  })
+)
 
 export const messages = pgTable('messages', {
   id: uuid('id').primaryKey().defaultRandom(),

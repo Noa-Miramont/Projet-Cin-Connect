@@ -43,11 +43,34 @@ router.post('/register', authController.register)
  *               password: { type: string }
  *     responses:
  *       200:
- *         description: Retourne user et token
+ *         description: Retourne user, accessToken et refreshToken
  *       401:
  *         description: Email ou mot de passe incorrect
  */
 router.post('/login', authController.login)
+
+/**
+ * @openapi
+ * /auth/refresh:
+ *   post:
+ *     summary: Rafraichir un access token via refresh token
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken: { type: string }
+ *     responses:
+ *       200:
+ *         description: Retourne un nouvel accessToken
+ *       400:
+ *         description: refreshToken manquant
+ *       401:
+ *         description: refreshToken invalide
+ */
+router.post('/refresh', authController.refresh)
 
 /**
  * @openapi

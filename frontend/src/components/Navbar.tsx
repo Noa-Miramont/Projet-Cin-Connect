@@ -1,8 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { StaggeredMenu, type StaggeredMenuItem } from '@/components/Staggered Menu/Staggered_Menu'
+import { useNotifications } from '@/contexts/NotificationsContext'
 
 export function Navbar() {
   const { user, isLoading } = useAuth()
+  const { friendRequestsCount } = useNotifications()
 
   if (isLoading) {
     return (
@@ -32,7 +34,10 @@ export function Navbar() {
     ? [
         ...baseItems,
         {
-          label: 'Social',
+          label:
+            friendRequestsCount > 0
+              ? `Social (${friendRequestsCount})`
+              : 'Social',
           ariaLabel: 'Aller à la page de discussion',
           link: '/discussion'
         },

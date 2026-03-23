@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { io } from 'socket.io-client'
 import { useAuth } from '@/contexts/AuthContext'
-import { fetchFriends } from '@/services/friends'
+import { useNotifications } from '@/contexts/NotificationsContext'
+import {
+  acceptFriendRequest,
+  declineFriendRequest,
+  fetchFriends
+} from '@/services/friends'
 import { fetchConversation } from '@/services/messages'
 
 type Message = {
@@ -17,6 +22,13 @@ type Message = {
 export function DiscussionPage() {
   const navigate = useNavigate()
   const { user, token } = useAuth()
+  const queryClient = useQueryClient()
+  const {
+    friendRequests,
+    hasFriendRequestsError,
+    friendRequestsError,
+    refreshFriendRequests
+  } = useNotifications()
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
@@ -47,8 +59,26 @@ export function DiscussionPage() {
   }, [user])
 
   const { data: friends } = useQuery({
-    queryKey: ['friends'],
-    queryFn: fetchFriends
+    queryKey: ['friends', user?.id],
+    queryFn: fetchFriends,
+    enabled: !!user
+  })
+
+  const acceptMutation = useMutation({
+    mutationFn: acceptFriendRequest,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['friends'] }),
+        refreshFriendRequests()
+      ])
+    }
+  })
+
+  const declineMutation = useMutation({
+    mutationFn: declineFriendRequest,
+    onSuccess: async () => {
+      await refreshFriendRequests()
+    }
   })
 
   const { data: initialMessages } = useQuery({
@@ -72,12 +102,23 @@ export function DiscussionPage() {
       path: '/socket.io'
     })
     socketRef.current = socket
-    socket.on('connect_error', () => {})
+    socket.on('connect', () => {
+      console.log('[FriendFlow][Discussion] socket connected', {
+        socketId: socket.id,
+        userId: user?.id
+      })
+    })
+    socket.on('connect_error', (err) => {
+      console.log('[FriendFlow][Discussion] socket connect_error', {
+        userId: user?.id,
+        message: err.message
+      })
+    })
     return () => {
       socket.disconnect()
       socketRef.current = null
     }
-  }, [token])
+  }, [token, user?.id])
 
   useEffect(() => {
     if (!selectedFriendId || !socketRef.current) return
@@ -93,11 +134,17 @@ export function DiscussionPage() {
     const onMessage = (msg: Message) => {
       setMessages((prev) => [...prev, msg])
     }
+    const onNewFriendRequest = (payload: unknown) => {
+      console.log('[FriendFlow][Discussion] new_friend_request received', payload)
+      void refreshFriendRequests()
+    }
     socket.on('message', onMessage)
+    socket.on('new_friend_request', onNewFriendRequest)
     return () => {
       socket.off('message', onMessage)
+      socket.off('new_friend_request', onNewFriendRequest)
     }
-  }, [])
+  }, [refreshFriendRequests])
 
   function sendMessage() {
     if (!input.trim() || !selectedFriendId || !socketRef.current) return
@@ -120,6 +167,48 @@ export function DiscussionPage() {
         <h2 className="border-b border-zinc-800 p-4 font-semibold text-white">
           Amis
         </h2>
+        <div className="border-b border-slate-800 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Demandes reçues
+          </p>
+          {hasFriendRequestsError && (
+            <p className="mb-2 text-xs text-red-400">
+              Erreur chargement demandes:{' '}
+              {friendRequestsError instanceof Error
+                ? friendRequestsError.message
+                : 'inconnue'}
+            </p>
+          )}
+          {friendRequests.length === 0 ? (
+            <p className="text-xs text-slate-500">Aucune demande</p>
+          ) : (
+            <ul className="space-y-2">
+              {friendRequests.map((request) => (
+                <li key={request.id} className="rounded border border-slate-700 p-2">
+                  <p className="text-sm font-medium text-white">{request.username}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => acceptMutation.mutate(request.id)}
+                      disabled={acceptMutation.isPending || declineMutation.isPending}
+                      className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-500 disabled:opacity-50"
+                    >
+                      Accepter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => declineMutation.mutate(request.id)}
+                      disabled={acceptMutation.isPending || declineMutation.isPending}
+                      className="rounded bg-rose-600 px-2 py-1 text-xs text-white hover:bg-rose-500 disabled:opacity-50"
+                    >
+                      Refuser
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <ul className="max-h-96 overflow-y-auto">
           {(friends ?? []).map((f) => (
             <li key={f.id}>

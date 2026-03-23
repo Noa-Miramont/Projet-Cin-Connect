@@ -1,7 +1,10 @@
 import request from 'supertest'
+import jwt from 'jsonwebtoken'
 import { createServer } from '../server'
 
 const app = createServer()
+const REFRESH_TOKEN_SECRET =
+  process.env.REFRESH_TOKEN_SECRET ?? 'dev-refresh-secret-change-in-production'
 
 describe('Auth routes', () => {
   describe('POST /api/auth/register', () => {
@@ -51,6 +54,35 @@ describe('Auth routes', () => {
     it('should return 400/401 when body is incomplete', async () => {
       const res = await request(app).post('/api/auth/login').send({ email: 'a@b.com' })
       expect([400, 401]).toContain(res.status)
+    })
+  })
+
+  describe('POST /api/auth/refresh', () => {
+    it('should return 400 when refreshToken is missing', async () => {
+      const res = await request(app).post('/api/auth/refresh').send({})
+      expect(res.status).toBe(400)
+      expect(res.body).toEqual({ error: 'refreshToken requis' })
+    })
+
+    it('should return 401 when refreshToken is invalid', async () => {
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: 'invalid' })
+      expect(res.status).toBe(401)
+      expect(res.body).toEqual({ error: 'Refresh token invalide' })
+    })
+
+    it('should return accessToken when refreshToken is valid', async () => {
+      const refreshToken = jwt.sign(
+        { id: 'user-id-1', type: 'refresh' },
+        REFRESH_TOKEN_SECRET
+      )
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken })
+      expect(res.status).toBe(200)
+      expect(res.body).toHaveProperty('accessToken')
+      expect(res.body).toHaveProperty('token')
     })
   })
 })

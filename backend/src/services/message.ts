@@ -1,22 +1,18 @@
 import { messageRepository } from '../repositories/message'
 import { friendRepository } from '../repositories/friend'
 
-function isFriend(userId: string, friendId: string, friends: { friend_id: string }[]) {
-  return friends.some((f) => f.friend_id === friendId)
-}
-
 export const messageService = {
   async getConversation(userId: string, otherUserId: string, limit?: number) {
-    const myFriends = await friendRepository.findByUserId(userId)
-    if (!isFriend(userId, otherUserId, myFriends)) {
+    const canChat = await friendRepository.areAcceptedFriends(userId, otherUserId)
+    if (!canChat) {
       throw new Error('Vous ne pouvez discuter qu’avec vos amis')
     }
     return messageRepository.getConversation(userId, otherUserId, limit)
   },
 
   async send(senderId: string, receiverId: string, content: string) {
-    const myFriends = await friendRepository.findByUserId(senderId)
-    if (!isFriend(senderId, receiverId, myFriends)) {
+    const canChat = await friendRepository.areAcceptedFriends(senderId, receiverId)
+    if (!canChat) {
       throw new Error('Vous ne pouvez discuter qu’avec vos amis')
     }
     const msg = await messageRepository.create({

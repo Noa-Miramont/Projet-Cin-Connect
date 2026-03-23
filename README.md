@@ -42,18 +42,18 @@ pnpm run dev:frontend   # http://localhost:5173
 pnpm run dev:backend    # http://localhost:3000
 ```
 
-- **Frontend** : http://localhost:5173  
-- **API** : http://localhost:3000  
-- **Swagger** : http://localhost:3000/api-docs  
+- **Frontend** : http://localhost:5173
+- **API** : http://localhost:3000
+- **Swagger** : http://localhost:3000/api-docs
 
 ## Scripts racine
 
-| Script | Description |
-|--------|-------------|
-| `pnpm run dev` | Lance frontend + backend (shared est buildé avant) |
-| `pnpm run build` | Build shared puis tous les packages |
-| `pnpm run lint` | Lint tous les packages |
-| `pnpm run test` | Tests dans tous les packages |
+| Script           | Description                                        |
+| ---------------- | -------------------------------------------------- |
+| `pnpm run dev`   | Lance frontend + backend (shared est buildé avant) |
+| `pnpm run build` | Build shared puis tous les packages                |
+| `pnpm run lint`  | Lint tous les packages                             |
+| `pnpm run test`  | Tests dans tous les packages                       |
 
 ## Backend & Base de données
 
@@ -64,6 +64,7 @@ pnpm run dev:backend    # http://localhost:3000
    - `PORT=3000` (optionnel)
 
 2. Créer la base et les tables avec Drizzle :
+
    ```bash
    cd backend && pnpm run db:push
    ```
@@ -90,8 +91,6 @@ pnpm run dev:backend    # http://localhost:3000
 2. **Shared** — Types dans `shared/src/types/`.
 3. **DB** — Schéma Drizzle dans `backend/src/db/schema.ts`, migrations avec `pnpm run db:generate` / `pnpm run db:push`.
 4. **Backend** — Contrôleurs, services, repositories dans `backend/src/`.
-
-
 
 utilisateur test logins :
 

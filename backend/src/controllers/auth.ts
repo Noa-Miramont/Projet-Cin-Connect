@@ -22,6 +22,19 @@ export const authController = {
     }
   },
 
+  async refresh(req: Request, res: Response) {
+    const { refreshToken } = req.body as { refreshToken?: string }
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'refreshToken requis' })
+    }
+    try {
+      const result = authService.refresh(refreshToken)
+      res.json(result)
+    } catch (err) {
+      res.status(401).json({ error: (err as Error).message })
+    }
+  },
+
   async me(req: Request, res: Response) {
     const user = (req as Request & { user?: { id: string } }).user
     if (!user) return res.status(401).json({ error: 'Non authentifié' })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchMyReviews } from '@/services/users'
 import { fetchFriends, addFriend, removeFriend } from '@/services/friends'
@@ -18,19 +19,24 @@ export function ProfilPage() {
   }, [user, navigate])
 
   const { data: reviews, isLoading: reviewsLoading } = useQuery({
-    queryKey: ['users', 'me', 'reviews'],
-    queryFn: fetchMyReviews
+    queryKey: ['users', 'me', 'reviews', user?.id],
+    queryFn: fetchMyReviews,
+    enabled: !!user
   })
 
   const { data: friends, isLoading: friendsLoading } = useQuery({
-    queryKey: ['friends'],
-    queryFn: fetchFriends
+    queryKey: ['friends', user?.id],
+    queryFn: fetchFriends,
+    enabled: !!user
   })
 
   const addFriendMutation = useMutation({
     mutationFn: addFriend,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['friends'] })
+      queryClient.invalidateQueries({
+        queryKey: ['friends', 'requests', 'received', user?.id]
+      })
       setFriendUsername('')
     }
   })
@@ -45,6 +51,14 @@ export function ProfilPage() {
   if (!user) {
     return null
   }
+
+  const addFriendErrorMessage =
+    addFriendMutation.isError && isAxiosError(addFriendMutation.error)
+      ? (addFriendMutation.error.response?.data as { error?: string } | undefined)
+          ?.error ?? addFriendMutation.error.message
+      : addFriendMutation.isError
+        ? (addFriendMutation.error as Error).message
+        : null
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -102,7 +116,7 @@ export function ProfilPage() {
         <div className="mt-4 flex gap-2">
           <input
             type="text"
-            placeholder="Pseudo à ajouter"
+            placeholder="Pseudo pour envoyer une demande"
             value={friendUsername}
             onChange={(e) => setFriendUsername(e.target.value)}
             onKeyDown={(e) => {
@@ -116,12 +130,12 @@ export function ProfilPage() {
             disabled={addFriendMutation.isPending || !friendUsername.trim()}
             className="rounded bg-zinc-100 px-4 py-2 text-zinc-950 hover:bg-white disabled:opacity-50"
           >
-            Ajouter
+            Envoyer
           </button>
         </div>
         {addFriendMutation.isError && (
           <p className="mt-2 text-sm text-red-400">
-            {(addFriendMutation.error as Error).message}
+            {addFriendErrorMessage}
           </p>
         )}
         {friendsLoading ? (

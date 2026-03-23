@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 
 type User = {
@@ -14,7 +15,7 @@ type AuthContextValue = {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: (options?: { redirect?: boolean }) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -23,39 +24,78 @@ const TOKEN_KEY = 'cineconnect_token'
 const USER_KEY = 'cineconnect_user'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadStored = useCallback(() => {
+  const clearAllStorage = useCallback(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  }, [])
+
+  const loadStored = useCallback(async () => {
     const t = localStorage.getItem(TOKEN_KEY)
     const u = localStorage.getItem(USER_KEY)
     if (t && u) {
       try {
         setToken(t)
-        setUser(JSON.parse(u) as User)
+        const parsedUser = JSON.parse(u) as User
+        setUser(parsedUser)
+        const { data } = await api.get<User>('/auth/me', {
+          headers: { Authorization: `Bearer ${t}` }
+        })
+        setUser(data)
+        localStorage.setItem(USER_KEY, JSON.stringify(data))
       } catch {
-        localStorage.removeItem(TOKEN_KEY)
-        localStorage.removeItem(USER_KEY)
+        clearAllStorage()
+        setToken(null)
+        setUser(null)
       }
     }
     setIsLoading(false)
-  }, [])
+  }, [clearAllStorage])
 
   useEffect(() => {
-    loadStored()
+    void loadStored()
   }, [loadStored])
+
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key !== TOKEN_KEY && e.key !== USER_KEY && e.key !== null) return
+      const nextToken = localStorage.getItem(TOKEN_KEY)
+      const nextUser = localStorage.getItem(USER_KEY)
+      if (!nextToken || !nextUser) {
+        setToken(null)
+        setUser(null)
+        queryClient.clear()
+        return
+      }
+      try {
+        setToken(nextToken)
+        setUser(JSON.parse(nextUser) as User)
+      } catch {
+        clearAllStorage()
+        setToken(null)
+        setUser(null)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [clearAllStorage, queryClient])
 
   const login = useCallback(async (email: string, password: string) => {
     const { data } = await api.post<{ user: User; token: string }>('/auth/login', {
       email,
       password
     })
+    queryClient.clear()
+    clearAllStorage()
     localStorage.setItem(TOKEN_KEY, data.token)
     localStorage.setItem(USER_KEY, JSON.stringify(data.user))
     setToken(data.token)
     setUser(data.user)
-  }, [])
+  }, [clearAllStorage, queryClient])
 
   const register = useCallback(
     async (username: string, email: string, password: string) => {
@@ -63,20 +103,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         '/auth/register',
         { username, email, password }
       )
+      queryClient.clear()
+      clearAllStorage()
       localStorage.setItem(TOKEN_KEY, data.token)
       localStorage.setItem(USER_KEY, JSON.stringify(data.user))
       setToken(data.token)
       setUser(data.user)
     },
-    []
+    [clearAllStorage, queryClient]
   )
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+  const logout = useCallback((options?: { redirect?: boolean }) => {
+    queryClient.clear()
+    clearAllStorage()
     setToken(null)
     setUser(null)
-  }, [])
+    if (options?.redirect ?? true) {
+      window.location.assign('/login')
+    }
+  }, [clearAllStorage, queryClient])
 
   const value: AuthContextValue = {
     user,

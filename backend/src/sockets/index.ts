@@ -4,15 +4,31 @@ import jwt from 'jsonwebtoken'
 import { messageService } from '../services/message'
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production'
+let ioInstance: Server | null = null
 
 function roomName(userId1: string, userId2: string) {
   return `chat-${[userId1, userId2].sort().join('-')}`
+}
+
+function userRoomName(userId: string) {
+  return `user-${userId}`
+}
+
+export function emitNewFriendRequest(receiverId: string, payload: {
+  requestId: string
+  requesterId: string
+  requesterUsername?: string
+  createdAt?: string
+}) {
+  if (!ioInstance) return
+  ioInstance.to(userRoomName(receiverId)).emit('new_friend_request', payload)
 }
 
 export function initSockets(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: { origin: true }
   })
+  ioInstance = io
 
   io.use((socket, next) => {
     const token =
@@ -38,6 +54,7 @@ export function initSockets(httpServer: HttpServer) {
     const userId = (socket as unknown as { data: { userId: string } }).data
       .userId
     console.log('[Socket] Client connected:', socket.id, 'user:', userId)
+    socket.join(userRoomName(userId))
 
     socket.on('join_room', (otherUserId: string) => {
       const room = roomName(userId, otherUserId)
