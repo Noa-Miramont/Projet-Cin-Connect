@@ -36,7 +36,7 @@ export function NotificationsProvider({
     queryFn: fetchReceivedFriendRequests,
     enabled: !!user,
     staleTime: 0,
-    refetchInterval: user ? 5000 : false,
+    refetchInterval: user ? 2000 : false,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true
   })
