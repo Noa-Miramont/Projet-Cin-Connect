@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchFilm } from '@/services/films'
 import { createReview, replaceReview } from '@/services/reviews'
 import { useAuth } from '@/contexts/AuthContext'
+import { PosterImage } from '@/components/PosterImage'
 
 export function FilmDetailPage() {
   const { id } = useParams({ from: '/film/$id' })
@@ -80,17 +81,11 @@ export function FilmDetailPage() {
       <div className="grid gap-8 md:grid-cols-[280px_1fr]">
         <div>
           <div className="aspect-[2/3] overflow-hidden rounded-lg bg-zinc-900">
-            {film.poster_url ? (
-              <img
-                src={film.poster_url}
-                alt={film.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-zinc-500">
-                Affiche indisponible
-              </div>
-            )}
+            <PosterImage
+              src={film.poster_url}
+              alt={film.title}
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="mt-4">
             <h1 className="text-2xl font-bold text-white">{film.title}</h1>
