@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react'
+import React, { createContext, useCallback, useContext, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -24,6 +24,10 @@ export function NotificationsProvider({
 }) {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const friendRequestsQueryKey = useMemo(
+    () => ['friends', 'requests', 'received', user?.id] as const,
+    [user?.id]
+  )
 
   const {
     data: friendRequests,
@@ -32,14 +36,19 @@ export function NotificationsProvider({
     isError,
     error
   } = useQuery({
-    queryKey: ['friends', 'requests', 'received', user?.id],
+    queryKey: friendRequestsQueryKey,
     queryFn: fetchReceivedFriendRequests,
     enabled: !!user,
     staleTime: 0,
-    refetchInterval: user ? 2000 : false,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true
   })
+
+  const refreshFriendRequests = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: friendRequestsQueryKey
+    })
+  }, [friendRequestsQueryKey, queryClient])
 
   const value = useMemo<NotificationsContextValue>(() => {
     const requests = friendRequests ?? []
@@ -49,13 +58,9 @@ export function NotificationsProvider({
       isLoadingFriendRequests: isLoading || isFetching,
       hasFriendRequestsError: isError,
       friendRequestsError: error instanceof Error ? error : null,
-      refreshFriendRequests: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: ['friends', 'requests', 'received', user?.id]
-        })
-      }
+      refreshFriendRequests
     }
-  }, [error, friendRequests, isError, isFetching, isLoading, queryClient, user?.id])
+  }, [error, friendRequests, isError, isFetching, isLoading, refreshFriendRequests])
 
   return (
     <NotificationsContext.Provider value={value}>

@@ -60,6 +60,11 @@ export function LoginPage() {
             required
             className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
           />
+          <div className="mt-2 text-right text-sm">
+            <Link to="/forgot-password" className="text-zinc-300 hover:underline">
+              Mot de passe oublié ?
+            </Link>
+          </div>
         </div>
         <button
           type="submit"

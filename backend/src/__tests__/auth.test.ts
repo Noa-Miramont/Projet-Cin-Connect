@@ -11,14 +11,14 @@ describe('Auth routes', () => {
     it('should return 400 when email is missing', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ username: 'test', password: 'password123' })
+        .send({ username: 'test', password: 'Password123!' })
       expect(res.status).toBe(400)
     })
 
     it('should return 400 when username is missing', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'test@test.com', password: 'password123' })
+        .send({ email: 'test@test.com', password: 'Password123!' })
       expect(res.status).toBe(400)
     })
 
@@ -29,31 +29,43 @@ describe('Auth routes', () => {
       expect(res.status).toBe(400)
     })
 
+    it('should return 400 when password is too weak', async () => {
+      const res = await request(app)
+        .post('/api/auth/signup')
+        .send({ email: 'weak@test.com', username: 'weakuser', password: 'password' })
+      expect(res.status).toBe(400)
+      expect(res.body).toEqual({
+        message:
+          'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.'
+      })
+    })
+
     it('should return 201 and user + token when valid', async () => {
       const email = `user-${Date.now()}@test.com`
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email, username: `user${Date.now()}`, password: 'password123' })
-      if (res.status === 201) {
-        expect(res.body).toHaveProperty('user')
-        expect(res.body).toHaveProperty('token')
-        expect(res.body.user).toHaveProperty('id')
-        expect(res.body.user).toHaveProperty('email', email)
-      }
+        .send({ email, username: `user${Date.now()}`, password: 'Password123!' })
+      expect(res.status).toBe(201)
+      expect(res.body).toHaveProperty('user')
+      expect(res.body).toHaveProperty('token')
+      expect(res.body.user).toHaveProperty('id')
+      expect(res.body.user).toHaveProperty('email', email)
     })
   })
 
   describe('POST /api/auth/login', () => {
-    it('should return 401 when credentials are invalid', async () => {
+    it('should return 401 with explicit email message when email does not exist', async () => {
       const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'nonexistent@test.com', password: 'wrong' })
       expect(res.status).toBe(401)
+      expect(res.body).toEqual({ message: 'Email incorrect' })
     })
 
-    it('should return 400/401 when body is incomplete', async () => {
+    it('should return 400 with explicit message when body is incomplete', async () => {
       const res = await request(app).post('/api/auth/login').send({ email: 'a@b.com' })
-      expect([400, 401]).toContain(res.status)
+      expect(res.status).toBe(400)
+      expect(res.body).toEqual({ message: 'Mot de passe requis' })
     })
   })
 

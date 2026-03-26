@@ -85,10 +85,22 @@ export const messages = pgTable('messages', {
   created_at: timestamp('created_at').defaultNow().notNull()
 })
 
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  user_id: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token_hash: varchar('token_hash', { length: 128 }).notNull().unique(),
+  expires_at: timestamp('expires_at').notNull(),
+  used_at: timestamp('used_at'),
+  created_at: timestamp('created_at').defaultNow().notNull()
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
   reviews: many(reviews),
   sentMessages: many(messages),
-  receivedMessages: many(messages)
+  receivedMessages: many(messages),
+  passwordResetTokens: many(passwordResetTokens)
 }))
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -109,6 +121,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   sender: one(users, { fields: [messages.sender_id], references: [users.id] }),
   receiver: one(users, {
     fields: [messages.receiver_id],
+    references: [users.id]
+  })
+}))
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [passwordResetTokens.user_id],
     references: [users.id]
   })
 }))

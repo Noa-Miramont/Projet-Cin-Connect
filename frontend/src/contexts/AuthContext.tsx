@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { api } from '@/services/api'
+import { api, getApiErrorMessage } from '@/services/api'
 
 type User = {
   id: string
@@ -85,30 +85,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearAllStorage, queryClient])
 
   const login = useCallback(async (email: string, password: string) => {
-    const { data } = await api.post<{ user: User; token: string }>('/auth/login', {
-      email,
-      password
-    })
-    queryClient.clear()
-    clearAllStorage()
-    localStorage.setItem(TOKEN_KEY, data.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user))
-    setToken(data.token)
-    setUser(data.user)
-  }, [clearAllStorage, queryClient])
-
-  const register = useCallback(
-    async (username: string, email: string, password: string) => {
-      const { data } = await api.post<{ user: User; token: string }>(
-        '/auth/register',
-        { username, email, password }
-      )
+    try {
+      const { data } = await api.post<{ user: User; token: string }>('/auth/login', {
+        email,
+        password
+      })
       queryClient.clear()
       clearAllStorage()
       localStorage.setItem(TOKEN_KEY, data.token)
       localStorage.setItem(USER_KEY, JSON.stringify(data.user))
       setToken(data.token)
       setUser(data.user)
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Impossible de se connecter'))
+    }
+  }, [clearAllStorage, queryClient])
+
+  const register = useCallback(
+    async (username: string, email: string, password: string) => {
+      try {
+        const { data } = await api.post<{ user: User; token: string }>(
+          '/auth/register',
+          { username, email, password }
+        )
+        queryClient.clear()
+        clearAllStorage()
+        localStorage.setItem(TOKEN_KEY, data.token)
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+        setToken(data.token)
+        setUser(data.user)
+      } catch (error) {
+        throw new Error(getApiErrorMessage(error, "Impossible de créer le compte"))
+      }
     },
     [clearAllStorage, queryClient]
   )
