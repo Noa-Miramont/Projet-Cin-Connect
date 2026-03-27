@@ -133,6 +133,10 @@ function FilmOverlayPanel({
     navigate({ to: '/discussion' })
   }
 
+  function openFilmPage() {
+    navigate({ to: '/film/$id', params: { id: filmId } })
+  }
+
   return (
     <div className="mx-auto w-full max-w-9xl">
       <div className="max-h-[calc(100vh-220px)] w-full overflow-y-auto pr-1 md:max-h-none md:overflow-visible">
@@ -227,6 +231,16 @@ function FilmOverlayPanel({
         ) : (
           <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour noter et commenter</p>
         )}
+
+        <div className="mt-5 border-t border-zinc-800 pt-4">
+          <button
+            type="button"
+            onClick={openFilmPage}
+            className="w-full rounded-lg border border-sky-400/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/70 hover:text-white"
+          >
+            Voir la page du film
+          </button>
+        </div>
 
         <div className="mt-5 border-t border-zinc-800 pt-4">
           <h3 className="text-base font-semibold text-white">Partager en DM</h3>
