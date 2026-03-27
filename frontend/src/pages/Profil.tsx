@@ -60,8 +60,7 @@ export function ProfilPage() {
         queryClient.invalidateQueries({ queryKey: ['friends'] }),
         queryClient.invalidateQueries({
           queryKey: ['friends', 'requests', 'received', user?.id]
-        }),
-        refreshFriendRequests()
+        })
       ])
       setFriendUsername('')
     }
@@ -81,8 +80,7 @@ export function ProfilPage() {
         queryClient.invalidateQueries({ queryKey: ['friends'] }),
         queryClient.invalidateQueries({
           queryKey: ['friends', 'requests', 'received', user?.id]
-        }),
-        refreshFriendRequests()
+        })
       ])
     }
   })
@@ -90,22 +88,11 @@ export function ProfilPage() {
   const declineMutation = useMutation({
     mutationFn: declineFriendRequest,
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['friends', 'requests', 'received', user?.id]
-        }),
-        refreshFriendRequests()
-      ])
+      await queryClient.invalidateQueries({
+        queryKey: ['friends', 'requests', 'received', user?.id]
+      })
     }
   })
-
-  useEffect(() => {
-    if (!user) return
-    void queryClient.invalidateQueries({
-      queryKey: ['users', 'me', 'reviews', user.id]
-    })
-    void refreshFriendRequests()
-  }, [queryClient, refreshFriendRequests, user])
 
   if (!user) {
     return null

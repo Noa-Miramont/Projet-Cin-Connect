@@ -54,5 +54,19 @@ export const reviewService = {
 
   async listByUser(userId: string) {
     return reviewRepository.findByUserId(userId)
+  },
+
+  async delete(userId: string, filmId: string) {
+    const existing = await reviewRepository.findUserReviewForFilm(userId, filmId)
+    if (!existing) {
+      throw new Error('Avis introuvable')
+    }
+
+    const deleted = await reviewRepository.deleteByUserAndFilm(userId, filmId)
+    if (!deleted) {
+      throw new Error('Avis introuvable')
+    }
+
+    return deleted
   }
 }

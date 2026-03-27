@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import { jwtAuth } from '../middlewares/jwt'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET as string
 
 function createMockResponse() {
   const res = {
@@ -53,7 +53,22 @@ describe('jwtAuth middleware', () => {
     jwtAuth(req, res, next)
 
     expect(res.status).toHaveBeenCalledWith(401)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Token invalide' })
+    expect(res.json).toHaveBeenCalledWith({ error: 'Token invalide ou expiré' })
+    expect(next).not.toHaveBeenCalled()
+  })
+
+  it('returns 401 when token is validly signed but missing user id', () => {
+    const token = jwt.sign({ role: 'user' }, JWT_SECRET)
+    const req = {
+      headers: { authorization: `Bearer ${token}` }
+    } as unknown as Request
+    const res = createMockResponse()
+    const next = jest.fn() as NextFunction
+
+    jwtAuth(req, res, next)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Token invalide ou expiré' })
     expect(next).not.toHaveBeenCalled()
   })
 

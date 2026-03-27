@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
+import { PasswordRequirements } from '@/components/PasswordRequirements'
+import { isStrongPassword } from '@/lib/password'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -11,6 +13,8 @@ export function RegisterPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const passwordsMatch = password.length > 0 && password === confirmPassword
+  const passwordIsStrong = isStrongPassword(password)
 
   const mutation = useMutation({
     mutationFn: () => register(username, email, password),
@@ -18,11 +22,26 @@ export function RegisterPage() {
     onError: (err: Error) => setError(err.message)
   })
 
+  const isSubmitDisabled =
+    mutation.isPending ||
+    !username.trim() ||
+    !email.trim() ||
+    !password ||
+    !confirmPassword ||
+    !passwordsMatch ||
+    !passwordIsStrong
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas')
+      return
+    }
+    if (!passwordIsStrong) {
+      setError(
+        'Le mot de passe doit respecter toutes les conditions de securite.'
+      )
       return
     }
     mutation.mutate()
@@ -75,6 +94,7 @@ export function RegisterPage() {
             required
             className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
           />
+          <PasswordRequirements password={password} />
         </div>
         <div>
           <label htmlFor="confirmPassword" className="block text-sm text-zinc-400">
@@ -88,11 +108,16 @@ export function RegisterPage() {
             required
             className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
           />
+          {!passwordsMatch && confirmPassword.length > 0 && (
+            <p className="mt-2 text-sm text-red-300">
+              Les mots de passe doivent etre identiques.
+            </p>
+          )}
         </div>
         <button
           type="submit"
-          disabled={mutation.isPending}
-          className="w-full rounded bg-zinc-100 py-2 font-medium text-zinc-950 transition hover:bg-white disabled:opacity-50"
+          disabled={isSubmitDisabled}
+          className="w-full rounded bg-zinc-100 py-2 font-medium text-zinc-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {mutation.isPending ? 'Inscription…' : "S'inscrire"}
         </button>

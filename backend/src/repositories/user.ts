@@ -37,6 +37,15 @@ export const userRepository = {
     return user
   },
 
+  async updatePassword(id: string, passwordHash: string) {
+    const [user] = await db
+      .update(users)
+      .set({ password: passwordHash })
+      .where(eq(users.id, id))
+      .returning()
+    return user
+  },
+
   async searchByUsername(query: string, limit: number) {
     return db
       .select({ id: users.id, username: users.username, email: users.email })

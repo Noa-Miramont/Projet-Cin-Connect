@@ -37,3 +37,7 @@ export async function replaceReview(params: {
   })
   return data
 }
+
+export async function deleteReview(filmId: string): Promise<void> {
+  await api.delete(`/reviews/${filmId}`)
+}

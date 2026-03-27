@@ -80,6 +80,16 @@ export const reviewRepository = {
     return row
   },
 
+  async deleteByUserAndFilm(userId: string, filmId: string) {
+    const [deleted] = await db
+      .delete(reviews)
+      .where(
+        and(eq(reviews.user_id, userId), eq(reviews.film_id, filmId))
+      )
+      .returning({ id: reviews.id })
+    return deleted
+  },
+
   async delete(id: string, userId: string) {
     const [deleted] = await db
       .delete(reviews)

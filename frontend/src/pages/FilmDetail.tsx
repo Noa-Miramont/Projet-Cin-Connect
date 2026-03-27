@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchFilm } from '@/services/films'
-import { createReview, replaceReview } from '@/services/reviews'
+import { createReview, deleteReview, replaceReview } from '@/services/reviews'
 import { fetchFriends } from '@/services/friends'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -15,6 +15,7 @@ export function FilmDetailPage() {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [replaceOpen, setReplaceOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
   const [shareFriendId, setShareFriendId] = useState<string | null>(null)
   const [shareComment, setShareComment] = useState('')
@@ -66,6 +67,18 @@ export function FilmDetailPage() {
     }
   })
 
+  const deleteReviewMutation = useMutation({
+    mutationFn: () => deleteReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['film', id] })
+      setComment('')
+      setRating(0)
+      setDeleteOpen(false)
+      setReplaceOpen(false)
+      setCreateErrorStatus(null)
+    }
+  })
+
   function shareToDm() {
     if (!shareFriendId || !film) return
     const base = `Je te partage le film "${film.title}"`
@@ -98,6 +111,7 @@ export function FilmDetailPage() {
   }
 
   const reviews = film.reviews ?? []
+  const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined
   const backdropImage =
     film.poster_url ||
     'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1920&auto=format&fit=crop'
@@ -204,6 +218,16 @@ export function FilmDetailPage() {
                   >
                     {createReviewMutation.isPending ? 'Publication...' : 'Publier'}
                   </button>
+                  {myReview ? (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteOpen(true)}
+                      disabled={deleteReviewMutation.isPending}
+                      className="rounded-md border border-[#3f4752] bg-[#131313] px-8 py-3 text-sm font-bold uppercase tracking-widest text-[#89919e] transition hover:border-[#009dff]/60 hover:text-white disabled:opacity-50"
+                    >
+                      {deleteReviewMutation.isPending ? 'Suppression...' : 'Supprimer mon avis'}
+                    </button>
+                  ) : null}
                   {createReviewMutation.isError && createErrorStatus !== 409 ? (
                     <p className="text-sm text-red-400">
                       {(createReviewMutation.error as any)?.response?.data?.error ??
@@ -345,6 +369,45 @@ export function FilmDetailPage() {
               <p className="mt-4 text-center text-sm text-red-400">
                 {(updateReviewMutation.error as any)?.response?.data?.error ??
                   (updateReviewMutation.error as Error).message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {deleteOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-none border border-zinc-800 bg-zinc-950 p-6">
+            <h3 className="text-center text-2xl font-semibold text-white">
+              Supprimer votre avis
+            </h3>
+            <p className="mt-3 text-center text-sm text-zinc-300">
+              Etes-vous sur de vouloir supprimer votre avis ?
+            </p>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => deleteReviewMutation.mutate()}
+                disabled={deleteReviewMutation.isPending}
+                className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+              >
+                {deleteReviewMutation.isPending ? 'Suppression...' : 'Supprimer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteReviewMutation.isPending}
+                className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+
+            {deleteReviewMutation.isError ? (
+              <p className="mt-4 text-center text-sm text-red-400">
+                {(deleteReviewMutation.error as any)?.response?.data?.error ??
+                  (deleteReviewMutation.error as Error).message}
               </p>
             ) : null}
           </div>

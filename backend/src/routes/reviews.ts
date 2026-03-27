@@ -78,4 +78,26 @@ router.post('/', jwtAuth, reviewController.create)
  */
 router.put('/:filmId', jwtAuth, reviewController.replace)
 
+/**
+ * @openapi
+ * /reviews/{filmId}:
+ *   delete:
+ *     summary: Supprimer son avis sur un film (authentifié)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filmId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       204:
+ *         description: Avis supprimé
+ *       401:
+ *         description: Non authentifié
+ *       404:
+ *         description: Avis introuvable
+ */
+router.delete('/:filmId', jwtAuth, reviewController.delete)
+
 export { router as reviewsRouter }
