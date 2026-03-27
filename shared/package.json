@@ -12,9 +12,9 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "eslint src --ext .ts",
+    "build": "node ./node_modules/typescript/bin/tsc",
+    "dev": "node ./node_modules/typescript/bin/tsc --watch",
+    "lint": "node ./node_modules/eslint/bin/eslint.js src --ext .ts",
     "test": "echo \"No tests in shared\""
   },
   "devDependencies": {
