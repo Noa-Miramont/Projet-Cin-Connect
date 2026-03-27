@@ -13,9 +13,9 @@ const swaggerOptions: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'CinéConnect API',
+      title: 'Dolly Zoom API',
       version: '1.0.0',
-      description: 'API REST CinéConnect'
+      description: 'API REST Dolly Zoom'
     },
     servers: [{ url: '/api', description: 'API' }],
     components: {

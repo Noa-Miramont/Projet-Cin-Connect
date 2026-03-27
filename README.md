@@ -1,6 +1,6 @@
-# CinéConnect
+# Dolly Zoom
 
-Mono-repo full stack JavaScript (React + Express) pour la plateforme CinéConnect.
+Mono-repo full stack JavaScript (React + Express) pour la plateforme Dolly Zoom.
 
 ## Structure
 
@@ -25,7 +25,7 @@ pnpm install
 1. Builder le package shared (nécessaire pour frontend et backend) :
 
 ```bash
-pnpm --filter @cineconnect/shared run build
+pnpm --filter @dollyzoom/shared run build
 ```
 
 2. Lancer le projet :
@@ -58,7 +58,7 @@ pnpm run dev:backend    # http://localhost:3000
 ## Backend & Base de données
 
 1. Créer un fichier `.env` dans `backend/` avec au minimum :
-   - `DATABASE_URL=postgresql://localhost:5432/cineconnect` (ou votre URL PostgreSQL)
+   - `DATABASE_URL=postgresql://localhost:5432/dollyzoom` (ou votre URL PostgreSQL)
    - `JWT_SECRET=<secret>` (optionnel en dev)
    - `OMDB_API_KEY=c630a2cf` (clé API OMDb pour la liste des films)
    - `PORT=3000` (optionnel)

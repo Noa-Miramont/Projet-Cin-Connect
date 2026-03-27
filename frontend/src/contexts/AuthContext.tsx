@@ -20,8 +20,8 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const TOKEN_KEY = 'cineconnect_token'
-const USER_KEY = 'cineconnect_user'
+const TOKEN_KEY = 'dollyzoom_token'
+const USER_KEY = 'dollyzoom_user'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()

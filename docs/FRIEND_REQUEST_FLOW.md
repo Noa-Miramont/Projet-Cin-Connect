@@ -20,6 +20,6 @@ Ce document résume le flux des demandes d'amis dans le projet.
 - Activer logs backend:
   - `FRIEND_FLOW_DEBUG=1 pnpm run dev`
 - Vérifier session active dans le navigateur:
-  - `localStorage.getItem('cineconnect_user')`
+  - `localStorage.getItem('dollyzoom_user')`
 - Éviter les sessions mélangées:
   - Utiliser 2 navigateurs différents (ou normal + incognito)

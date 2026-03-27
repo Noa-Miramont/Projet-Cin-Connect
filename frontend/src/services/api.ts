@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const TOKEN_KEY = 'cineconnect_token'
+const TOKEN_KEY = 'dollyzoom_token'
 
 export const api = axios.create({
   baseURL: '/api',

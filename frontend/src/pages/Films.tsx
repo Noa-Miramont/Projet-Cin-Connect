@@ -115,7 +115,7 @@ function FilmOverlayPanel({
     const extra = shareComment.trim() ? `\n\nMon message: ${shareComment.trim()}` : ''
     const content = `${base}${extra}`
     sessionStorage.setItem(
-      'cineconnect_dm_draft',
+      'dollyzoom_dm_draft',
       JSON.stringify({ friendId: shareFriendId, content })
     )
     navigate({ to: '/discussion' })

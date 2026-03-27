@@ -58,7 +58,7 @@ describe('api request interceptor', () => {
   })
 
   it('adds Authorization header when a token is present', () => {
-    localStorage.setItem('cineconnect_token', 'token-123')
+    localStorage.setItem('dollyzoom_token', 'token-123')
     const config = runRequestInterceptor({
       headers: { 'Content-Type': 'application/json' }
     })
@@ -77,7 +77,7 @@ describe('api request interceptor', () => {
   })
 
   it('creates headers object when missing and token exists', () => {
-    localStorage.setItem('cineconnect_token', 'abc')
+    localStorage.setItem('dollyzoom_token', 'abc')
     const config = runRequestInterceptor({})
 
     expect(config.headers).toBeDefined()

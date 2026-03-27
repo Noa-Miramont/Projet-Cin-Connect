@@ -34,8 +34,8 @@ Ajout de nouveaux tests sans modifier le code applicatif existant.
 Depuis la racine du repository:
 
 ```bash
-pnpm --filter @cineconnect/frontend run test
-pnpm --filter @cineconnect/backend run test -- jwt.test.ts
+pnpm --filter @dollyzoom/frontend run test
+pnpm --filter @dollyzoom/backend run test -- jwt.test.ts
 ```
 
 ## Notes
