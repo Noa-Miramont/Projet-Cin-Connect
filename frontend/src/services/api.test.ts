@@ -1,4 +1,5 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import axios from 'axios'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from './api'
 
 type InterceptorConfig = {
@@ -45,6 +46,22 @@ function runRequestInterceptor(config: InterceptorConfig = {}) {
   return interceptor(config)
 }
 
+function runResponseRejectedInterceptor(error: unknown) {
+  const handlers = (api.interceptors.response as unknown as {
+    handlers: Array<{ rejected?: (value: unknown) => Promise<unknown> }>
+  }).handlers
+
+  const interceptor = handlers.find(
+    (handler) => typeof handler.rejected === 'function'
+  )?.rejected
+
+  if (!interceptor) {
+    throw new Error('Response interceptor not found')
+  }
+
+  return interceptor(error)
+}
+
 describe('api request interceptor', () => {
   beforeAll(() => {
     Object.defineProperty(globalThis, 'localStorage', {
@@ -55,6 +72,7 @@ describe('api request interceptor', () => {
 
   beforeEach(() => {
     localStorage.clear()
+    vi.restoreAllMocks()
   })
 
   it('adds Authorization header when a token is present', () => {
@@ -82,5 +100,52 @@ describe('api request interceptor', () => {
 
     expect(config.headers).toBeDefined()
     expect(config.headers?.Authorization).toBe('Bearer abc')
+  })
+
+  it('refreshes the access token and retries the request after a 401', async () => {
+    localStorage.setItem('cineconnect_token', 'expired-token')
+    localStorage.setItem('cineconnect_refresh_token', 'refresh-token-123')
+    localStorage.setItem(
+      'cineconnect_user',
+      JSON.stringify({ id: 'user-1', email: 'user@test.com', username: 'user' })
+    )
+
+    const refreshSpy = vi.spyOn(axios, 'post').mockResolvedValueOnce({
+      data: { accessToken: 'new-access-token' }
+    } as never)
+    const retrySpy = vi.spyOn(api, 'request').mockResolvedValueOnce({
+      data: { ok: true }
+    } as never)
+
+    const result = await runResponseRejectedInterceptor({
+      isAxiosError: true,
+      config: {
+        url: '/reviews',
+        headers: {}
+      },
+      response: {
+        status: 401
+      }
+    })
+
+    expect(refreshSpy).toHaveBeenCalledWith(
+      '/api/auth/refresh',
+      { refreshToken: 'refresh-token-123' },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+    expect(localStorage.getItem('cineconnect_token')).toBe('new-access-token')
+    expect(retrySpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _retry: true,
+        headers: expect.objectContaining({
+          Authorization: 'Bearer new-access-token'
+        })
+      })
+    )
+    expect(result).toEqual({ data: { ok: true } })
   })
 })

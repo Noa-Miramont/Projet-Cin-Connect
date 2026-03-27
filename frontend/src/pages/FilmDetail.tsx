@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchFilm } from '@/services/films'
-import { createReview, replaceReview } from '@/services/reviews'
+import { createReview, deleteReview, replaceReview } from '@/services/reviews'
 import { useAuth } from '@/contexts/AuthContext'
 import { PosterImage } from '@/components/PosterImage'
 
@@ -13,6 +13,7 @@ export function FilmDetailPage() {
   const [rating, setRating] = useState(3)
   const [comment, setComment] = useState('')
   const [replaceOpen, setReplaceOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
 
   const { data: film, isLoading, error } = useQuery({
@@ -54,6 +55,18 @@ export function FilmDetailPage() {
     }
   })
 
+  const deleteReviewMutation = useMutation({
+    mutationFn: () => deleteReview(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['film', id] })
+      setComment('')
+      setRating(3)
+      setDeleteOpen(false)
+      setReplaceOpen(false)
+      setCreateErrorStatus(null)
+    }
+  })
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
@@ -74,6 +87,7 @@ export function FilmDetailPage() {
   }
 
   const reviews = film.reviews ?? []
+  const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined
 
   return (
     <>
@@ -164,6 +178,16 @@ export function FilmDetailPage() {
                 >
                   {createReviewMutation.isPending ? 'Envoi…' : 'Publier'}
                 </button>
+                {myReview ? (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteOpen(true)}
+                    disabled={deleteReviewMutation.isPending}
+                    className="mt-2 rounded border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+                  >
+                    {deleteReviewMutation.isPending ? 'Suppression…' : 'Supprimer mon avis'}
+                  </button>
+                ) : null}
                 {createReviewMutation.isError && createErrorStatus !== 409 ? (
                   <p className="text-sm text-red-400">
                     {(createReviewMutation.error as any)?.response?.data?.error ??
@@ -222,6 +246,45 @@ export function FilmDetailPage() {
               <p className="mt-4 text-center text-sm text-red-400">
                 {(updateReviewMutation.error as any)?.response?.data?.error ??
                   (updateReviewMutation.error as Error).message}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {deleteOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-none border border-zinc-800 bg-zinc-950 p-6">
+            <h3 className="text-center text-2xl font-semibold text-white">
+              Supprimer votre avis
+            </h3>
+            <p className="mt-3 text-center text-sm text-zinc-300">
+              Êtes-vous sûr de vouloir supprimer votre avis ?
+            </p>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => deleteReviewMutation.mutate()}
+                disabled={deleteReviewMutation.isPending}
+                className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
+              >
+                {deleteReviewMutation.isPending ? 'Suppression…' : 'Supprimer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteReviewMutation.isPending}
+                className="flex-1 rounded border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+              >
+                Annuler
+              </button>
+            </div>
+
+            {deleteReviewMutation.isError ? (
+              <p className="mt-4 text-center text-sm text-red-400">
+                {(deleteReviewMutation.error as any)?.response?.data?.error ??
+                  (deleteReviewMutation.error as Error).message}
               </p>
             ) : null}
           </div>

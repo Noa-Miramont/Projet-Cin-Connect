@@ -51,6 +51,25 @@ export const reviewController = {
     }
   },
 
+  async delete(req: AuthRequest, res: Response) {
+    const user = req.user
+    if (!user) return res.status(401).json({ error: 'Non authentifié' })
+
+    try {
+      const filmId = req.params.filmId
+      if (!filmId) {
+        return res.status(400).json({ error: 'filmId requis' })
+      }
+
+      await reviewService.delete(user.id, filmId)
+      res.status(204).send()
+    } catch (err) {
+      const msg = (err as Error).message
+      if (msg.includes('introuvable')) return res.status(404).json({ error: msg })
+      res.status(500).json({ error: msg })
+    }
+  },
+
   async list(req: Request, res: Response) {
     try {
       const filmId = req.query.filmId as string

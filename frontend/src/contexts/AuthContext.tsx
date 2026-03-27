@@ -1,6 +1,19 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { isAxiosError } from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, getApiErrorMessage } from '@/services/api'
+import {
+  AUTH_STORAGE_EVENT,
+  clearStoredAuthSession,
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  getStoredUser,
+  REFRESH_TOKEN_KEY,
+  storeAuthSession,
+  TOKEN_KEY,
+  updateStoredUser,
+  USER_KEY
+} from '@/services/authStorage'
 
 type User = {
   id: string
@@ -20,9 +33,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const TOKEN_KEY = 'cineconnect_token'
-const USER_KEY = 'cineconnect_user'
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
@@ -34,23 +44,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.clear()
   }, [])
 
+  const syncFromStoredSession = useCallback(() => {
+    const nextToken = getStoredAccessToken()
+    const nextUser = getStoredUser<User>()
+
+    if (!nextToken || !nextUser) {
+      setToken(null)
+      setUser(null)
+      queryClient.clear()
+      return
+    }
+
+    setToken(nextToken)
+    setUser(nextUser)
+  }, [queryClient])
+
   const loadStored = useCallback(async () => {
-    const t = localStorage.getItem(TOKEN_KEY)
-    const u = localStorage.getItem(USER_KEY)
-    if (t && u) {
+    const storedToken = getStoredAccessToken()
+    const storedRefreshToken = getStoredRefreshToken()
+    const storedUser = getStoredUser<User>()
+
+    if ((storedToken || storedRefreshToken) && storedUser) {
       try {
-        setToken(t)
-        const parsedUser = JSON.parse(u) as User
-        setUser(parsedUser)
-        const { data } = await api.get<User>('/auth/me', {
-          headers: { Authorization: `Bearer ${t}` }
-        })
+        setToken(storedToken)
+        setUser(storedUser)
+        const { data } = await api.get<User>('/auth/me')
         setUser(data)
-        localStorage.setItem(USER_KEY, JSON.stringify(data))
-      } catch {
-        clearAllStorage()
-        setToken(null)
-        setUser(null)
+        updateStoredUser(data)
+        setToken(getStoredAccessToken())
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 401) {
+          clearAllStorage()
+          clearStoredAuthSession()
+          setToken(null)
+          setUser(null)
+        } else {
+          console.error('[AUTH] session restore failed', {
+            message: error instanceof Error ? error.message : 'Erreur inconnue'
+          })
+        }
       }
     }
     setIsLoading(false)
@@ -62,39 +94,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (e.key !== TOKEN_KEY && e.key !== USER_KEY && e.key !== null) return
-      const nextToken = localStorage.getItem(TOKEN_KEY)
-      const nextUser = localStorage.getItem(USER_KEY)
-      if (!nextToken || !nextUser) {
-        setToken(null)
-        setUser(null)
-        queryClient.clear()
-        return
-      }
-      try {
-        setToken(nextToken)
-        setUser(JSON.parse(nextUser) as User)
-      } catch {
-        clearAllStorage()
-        setToken(null)
-        setUser(null)
-      }
+      const watchedKeys = [TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]
+      if (e.key !== null && !watchedKeys.includes(e.key)) return
+      syncFromStoredSession()
     }
+
+    function onAuthStorageEvent() {
+      syncFromStoredSession()
+    }
+
     window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [clearAllStorage, queryClient])
+    window.addEventListener(AUTH_STORAGE_EVENT, onAuthStorageEvent)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener(AUTH_STORAGE_EVENT, onAuthStorageEvent)
+    }
+  }, [syncFromStoredSession])
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const { data } = await api.post<{ user: User; token: string }>('/auth/login', {
+      const { data } = await api.post<{
+        user: User
+        token: string
+        accessToken?: string
+        refreshToken: string
+      }>('/auth/login', {
         email,
         password
       })
+      const accessToken = data.accessToken ?? data.token
       queryClient.clear()
       clearAllStorage()
-      localStorage.setItem(TOKEN_KEY, data.token)
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user))
-      setToken(data.token)
+      storeAuthSession({
+        accessToken,
+        refreshToken: data.refreshToken,
+        user: data.user
+      })
+      setToken(accessToken)
       setUser(data.user)
     } catch (error) {
       throw new Error(getApiErrorMessage(error, 'Impossible de se connecter'))
@@ -104,15 +140,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(
     async (username: string, email: string, password: string) => {
       try {
-        const { data } = await api.post<{ user: User; token: string }>(
+        const { data } = await api.post<{
+          user: User
+          token: string
+          accessToken?: string
+          refreshToken: string
+        }>(
           '/auth/register',
           { username, email, password }
         )
+        const accessToken = data.accessToken ?? data.token
         queryClient.clear()
         clearAllStorage()
-        localStorage.setItem(TOKEN_KEY, data.token)
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user))
-        setToken(data.token)
+        storeAuthSession({
+          accessToken,
+          refreshToken: data.refreshToken,
+          user: data.user
+        })
+        setToken(accessToken)
         setUser(data.user)
       } catch (error) {
         throw new Error(getApiErrorMessage(error, "Impossible de créer le compte"))
@@ -124,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback((options?: { redirect?: boolean }) => {
     queryClient.clear()
     clearAllStorage()
+    clearStoredAuthSession()
     setToken(null)
     setUser(null)
     if (options?.redirect ?? true) {
