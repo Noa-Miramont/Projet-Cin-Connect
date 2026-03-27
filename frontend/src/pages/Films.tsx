@@ -5,6 +5,7 @@ import { fetchFilm, fetchFilms, type FilmDetail } from '@/services/films'
 import { fetchCategories } from '@/services/categories'
 import { createReview, replaceReview } from '@/services/reviews'
 import { fetchFriends } from '@/services/friends'
+import { addFilmToWatchlist } from '@/services/watchlist'
 import { useAuth } from '@/contexts/AuthContext'
 import DomeGallery from '@/components/wall_of_movies/wall_of_movies'
 
@@ -39,10 +40,12 @@ function StarRating({
 
 function FilmOverlayPanel({
   filmId,
-  filmTitle
+  filmTitle,
+  filmPosterUrl
 }: {
   filmId: string
   filmTitle: string
+  filmPosterUrl: string
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -109,6 +112,15 @@ function FilmOverlayPanel({
   const reviews = resolvedFilm?.reviews ?? []
   const averageRating = resolvedFilm?.averageRating
 
+  function addToWatchlist() {
+    if (!user) return
+    addFilmToWatchlist(user.id, {
+      id: filmId,
+      title: filmTitle,
+      posterUrl: filmPosterUrl
+    })
+  }
+
   function shareToDm() {
     if (!shareFriendId) return
     const base = `Je te partage le film "${filmTitle}"`
@@ -136,6 +148,17 @@ function FilmOverlayPanel({
             <div className="text-sm text-zinc-400">Aucune note pour l’instant</div>
           )}
         </div>
+        {user ? (
+          <button
+            type="button"
+            onClick={addToWatchlist}
+            className="mt-3 w-full rounded-lg border border-sky-400/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/70 hover:text-white"
+          >
+            Ajouter a ma watchlist
+          </button>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour utiliser la watchlist</p>
+        )}
 
         {isLoading ? (
           <div className="mt-4 space-y-3">
@@ -390,7 +413,13 @@ export function FilmsPage() {
           onClose={() => {}}
           overlayContent={(item) => {
             if (!item.id) return null
-            return <FilmOverlayPanel filmId={item.id} filmTitle={item.title || item.alt} />
+            return (
+              <FilmOverlayPanel
+                filmId={item.id}
+                filmTitle={item.title || item.alt}
+                filmPosterUrl={item.src}
+              />
+            )
           }}
         />
       </div>

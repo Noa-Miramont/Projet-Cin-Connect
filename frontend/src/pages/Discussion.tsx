@@ -10,6 +10,7 @@ import {
   fetchFriends
 } from '@/services/friends'
 import { fetchConversation } from '@/services/messages'
+import { getWatchlist, type WatchlistFilm } from '@/services/watchlist'
 
 type Message = {
   id: string
@@ -45,8 +46,10 @@ export function DiscussionPage() {
     refreshFriendRequests
   } = useNotifications()
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null)
+  const [activePanel, setActivePanel] = useState<'messages' | 'watchlist'>('messages')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
+  const [watchlist, setWatchlist] = useState<WatchlistFilm[]>([])
   const socketRef = useRef<ReturnType<typeof io> | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const draftConsumedRef = useRef(false)
@@ -71,6 +74,21 @@ export function DiscussionPage() {
       sessionStorage.removeItem('dollyzoom_dm_draft')
       draftConsumedRef.current = true
     }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) {
+      setWatchlist([])
+      return
+    }
+
+    const loadWatchlist = () => {
+      setWatchlist(getWatchlist(user.id))
+    }
+
+    loadWatchlist()
+    window.addEventListener('storage', loadWatchlist)
+    return () => window.removeEventListener('storage', loadWatchlist)
   }, [user])
 
   const { data: friends } = useQuery({
@@ -208,123 +226,179 @@ export function DiscussionPage() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  className="rounded-lg border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-sky-200"
+                  onClick={() => setActivePanel('messages')}
+                  className={`rounded-lg border px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition ${
+                    activePanel === 'messages'
+                      ? 'border-sky-400/30 bg-sky-500/10 text-sky-200'
+                      : 'border-zinc-800 bg-zinc-950/70 text-zinc-400'
+                  }`}
                 >
                   Messages
                 </button>
                 <button
                   type="button"
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400"
+                  onClick={() => setActivePanel('watchlist')}
+                  className={`rounded-lg border px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition ${
+                    activePanel === 'watchlist'
+                      ? 'border-sky-400/30 bg-sky-500/10 text-sky-200'
+                      : 'border-zinc-800 bg-zinc-950/70 text-zinc-400'
+                  }`}
                 >
                   Watchlist
                 </button>
               </div>
-              <p className="mt-3 text-xs text-zinc-500">Sélectionne une conversation pour commencer</p>
-            </div>
-
-            <div className="border-b border-zinc-800/70 p-4">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
-                Demandes reçues
+              <p className="mt-3 text-xs text-zinc-500">
+                {activePanel === 'messages'
+                  ? 'Selectionne une conversation pour commencer'
+                  : 'Affiche ta watchlist dans le panneau de droite'}
               </p>
-              {hasFriendRequestsError && (
-                <p className="mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                  Erreur chargement demandes:{' '}
-                  {friendRequestsError instanceof Error
-                    ? friendRequestsError.message
-                    : 'inconnue'}
-                </p>
-              )}
-              {friendRequests.length === 0 ? (
-                <p className="text-xs text-zinc-500">Aucune demande</p>
-              ) : (
-                <ul className="space-y-2">
-                  {friendRequests.map((request) => (
-                    <li
-                      key={request.id}
-                      className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-3"
-                    >
-                      <p className="text-sm font-semibold text-zinc-100">{request.username}</p>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => acceptMutation.mutate(request.id)}
-                          disabled={acceptMutation.isPending || declineMutation.isPending}
-                          className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Accepter
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => declineMutation.mutate(request.id)}
-                          disabled={acceptMutation.isPending || declineMutation.isPending}
-                          className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Refuser
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3">
-              <ul className="space-y-1.5">
-                {(friends ?? []).map((f) => {
-                  const isSelected = selectedFriendId === f.friend_id
-                  return (
-                    <li key={f.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedFriendId(f.friend_id)}
-                        className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-                          isSelected
-                            ? 'border-sky-400/30 bg-sky-500/10 shadow-[0_0_20px_rgba(14,165,233,0.18)]'
-                            : 'border-zinc-800 bg-zinc-950/50 hover:border-zinc-700 hover:bg-zinc-900'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p
-                            className={`text-sm font-semibold ${
-                              isSelected ? 'text-sky-200' : 'text-zinc-100'
+            {activePanel === 'messages' ? (
+              <>
+                <div className="border-b border-zinc-800/70 p-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
+                    Demandes recues
+                  </p>
+                  {hasFriendRequestsError && (
+                    <p className="mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                      Erreur chargement demandes:{' '}
+                      {friendRequestsError instanceof Error
+                        ? friendRequestsError.message
+                        : 'inconnue'}
+                    </p>
+                  )}
+                  {friendRequests.length === 0 ? (
+                    <p className="text-xs text-zinc-500">Aucune demande</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {friendRequests.map((request) => (
+                        <li
+                          key={request.id}
+                          className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-3"
+                        >
+                          <p className="text-sm font-semibold text-zinc-100">{request.username}</p>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => acceptMutation.mutate(request.id)}
+                              disabled={acceptMutation.isPending || declineMutation.isPending}
+                              className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Accepter
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => declineMutation.mutate(request.id)}
+                              disabled={acceptMutation.isPending || declineMutation.isPending}
+                              className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Refuser
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3">
+                  <ul className="space-y-1.5">
+                    {(friends ?? []).map((f) => {
+                      const isSelected = selectedFriendId === f.friend_id
+                      return (
+                        <li key={f.id}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFriendId(f.friend_id)}
+                            className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                              isSelected
+                                ? 'border-sky-400/30 bg-sky-500/10 shadow-[0_0_20px_rgba(14,165,233,0.18)]'
+                                : 'border-zinc-800 bg-zinc-950/50 hover:border-zinc-700 hover:bg-zinc-900'
                             }`}
                           >
-                            {f.username}
-                          </p>
-                          <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            ami
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-xs text-zinc-500">
-                          {isSelected ? 'Conversation active' : 'Ouvrir la discussion'}
-                        </p>
-                      </button>
-                    </li>
-                  )
-                })}
-                {(friends ?? []).length === 0 ? (
-                  <li className="rounded-xl border border-dashed border-zinc-700 p-6 text-center text-sm text-zinc-500">
-                    Aucun ami disponible pour le moment
-                  </li>
-                ) : null}
-              </ul>
-            </div>
-
-            <div className="border-t border-zinc-800/70 p-4">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-400">
-                  Watchlist
-                </p>
-                <p className="mt-2 text-xs text-zinc-500">
-                  Cette zone est prête pour afficher tes films sauvegardés
-                </p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p
+                                className={`text-sm font-semibold ${
+                                  isSelected ? 'text-sky-200' : 'text-zinc-100'
+                                }`}
+                              >
+                                {f.username}
+                              </p>
+                              <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                                ami
+                              </span>
+                            </div>
+                            <p className="mt-1 truncate text-xs text-zinc-500">
+                              {isSelected ? 'Conversation active' : 'Ouvrir la discussion'}
+                            </p>
+                          </button>
+                        </li>
+                      )
+                    })}
+                    {(friends ?? []).length === 0 ? (
+                      <li className="rounded-xl border border-dashed border-zinc-700 p-6 text-center text-sm text-zinc-500">
+                        Aucun ami disponible pour le moment
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-1 items-center justify-center p-4">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-6 text-center text-sm text-zinc-400">
+                  Clique sur un film de ta watchlist a droite
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
 
         <section className="hidden flex-1 flex-col bg-zinc-950/40 md:flex">
-          {selectedFriendId ? (
+          {activePanel === 'watchlist' ? (
+            <div className="flex h-full flex-col">
+              <header className="flex h-20 items-center justify-between border-b border-zinc-800/80 bg-zinc-950/80 px-6 backdrop-blur">
+                <div>
+                  <h2 className="text-lg font-black tracking-tight text-zinc-100">Ma watchlist</h2>
+                  <p className="text-xs uppercase tracking-[0.12em] text-sky-300">
+                    {watchlist.length} film{watchlist.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+              </header>
+
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                {watchlist.length === 0 ? (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-8 py-10 text-center">
+                      <p className="text-lg font-bold uppercase tracking-[0.1em] text-zinc-300">
+                        Watchlist vide
+                      </p>
+                      <p className="mt-2 text-sm text-zinc-500">
+                        Ajoute des films depuis la page Films
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+                    {watchlist.map((film) => (
+                      <article
+                        key={film.id}
+                        className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/70"
+                      >
+                        <img src={film.posterUrl} alt={film.title} className="h-56 w-full object-cover" />
+                        <div className="p-3">
+                          <p className="line-clamp-2 text-sm font-semibold text-zinc-100">{film.title}</p>
+                          <p className="mt-1 text-[11px] text-zinc-500">
+                            Ajoute le {new Date(film.addedAt).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : selectedFriendId ? (
             <>
               <header className="flex h-20 items-center justify-between border-b border-zinc-800/80 bg-zinc-950/80 px-6 backdrop-blur">
                 <div>
