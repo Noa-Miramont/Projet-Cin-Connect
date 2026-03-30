@@ -69,8 +69,8 @@ Codes de retour:
 ## Vérification locale exécutée
 
 ```bash
-pnpm --filter @cineconnect/backend run build
-pnpm --filter @cineconnect/backend run test -- auth.controller.tokens.test.ts jwt.test.ts
+pnpm --filter @dollyzoom/backend run build
+pnpm --filter @dollyzoom/backend run test -- auth.controller.tokens.test.ts jwt.test.ts
 ```
 
 Note:

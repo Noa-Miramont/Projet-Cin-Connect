@@ -20,7 +20,7 @@ importers:
       '@aws-sdk/client-ses':
         specifier: ^3.1015.0
         version: 3.1017.0
-      '@cineconnect/shared':
+      '@dollyzoom/shared':
         specifier: workspace:*
         version: link:../shared
       bcrypt:
@@ -129,7 +129,7 @@ importers:
 
   frontend:
     dependencies:
-      '@cineconnect/shared':
+      '@dollyzoom/shared':
         specifier: workspace:*
         version: link:../shared
       '@tanstack/react-query':

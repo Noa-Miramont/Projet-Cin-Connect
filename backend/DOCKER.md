@@ -14,13 +14,13 @@
 
 ### 1. Démarrer PostgreSQL
 
-À la **racine du projet** (CineConnect) :
+À la **racine du projet** (Dolly Zoom) :
 
 ```bash
 docker compose up -d
 ```
 
-La base `cineconnect_db` est créée avec l’utilisateur `cineconnect` / mot de passe `cineconnect_pwd` sur le port `5432`.
+La base `dollyzoom_db` est créée avec l’utilisateur `dollyzoom` / mot de passe `dollyzoom_pwd` sur le port `5432`.
 
 ### 2. Appliquer le schéma (Drizzle)
 

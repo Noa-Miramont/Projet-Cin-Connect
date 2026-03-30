@@ -1,5 +1,5 @@
 {
-  "name": "@cineconnect/backend",
+  "name": "@dollyzoom/backend",
   "version": "1.0.0",
   "private": true,
   "main": "dist/index.js",
@@ -15,7 +15,7 @@
     "seed": "node ./node_modules/ts-node/dist/bin.js src/db/seed.ts"
   },
   "dependencies": {
-    "@cineconnect/shared": "workspace:*",
+    "@dollyzoom/shared": "workspace:*",
     "@aws-sdk/client-ses": "^3.1015.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",

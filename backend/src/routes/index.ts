@@ -20,7 +20,7 @@ router.use('/messages', messagesRouter)
 router.use('/watchlist', watchlistRouter)
 
 router.get('/', (_req, res) => {
-  res.json({ message: 'CinéConnect API v1' })
+  res.json({ message: 'Dolly Zoom API v1' })
 })
 
 export { router }
