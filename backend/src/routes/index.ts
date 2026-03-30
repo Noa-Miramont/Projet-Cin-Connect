@@ -6,6 +6,7 @@ import { reviewsRouter } from './reviews'
 import { usersRouter } from './users'
 import { friendsRouter } from './friends'
 import { messagesRouter } from './messages'
+import { watchlistRouter } from './watchlist'
 
 const router: ReturnType<typeof Router> = Router()
 
@@ -16,6 +17,7 @@ router.use('/reviews', reviewsRouter)
 router.use('/users', usersRouter)
 router.use('/friends', friendsRouter)
 router.use('/messages', messagesRouter)
+router.use('/watchlist', watchlistRouter)
 
 router.get('/', (_req, res) => {
   res.json({ message: 'CinéConnect API v1' })

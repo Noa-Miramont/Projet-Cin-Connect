@@ -68,8 +68,18 @@ describe('FilmOverlayPanel', () => {
       .mockReturnValueOnce({
         data: [{ id: 'friend-1', friend_id: 'friend-user-1', username: 'bob' }]
       })
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false
+      })
 
     useMutationMock
+      .mockReturnValueOnce({
+        mutate: vi.fn(),
+        isPending: false,
+        isError: false,
+        error: null
+      })
       .mockReturnValueOnce({
         mutate: vi.fn(),
         isPending: false,

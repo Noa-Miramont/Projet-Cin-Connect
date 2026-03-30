@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { fetchFilm, fetchFilms, type FilmDetail } from '@/services/films'
@@ -7,8 +7,8 @@ import { createReview, deleteReview, replaceReview } from '@/services/reviews'
 import { fetchFriends } from '@/services/friends'
 import {
   addFilmToWatchlist,
-  isFilmInWatchlist,
-  WATCHLIST_UPDATED_EVENT
+  fetchWatchlist,
+  isFilmInWatchlist
 } from '@/services/watchlist'
 import { useAuth } from '@/contexts/AuthContext'
 import DomeGallery from '@/components/wall_of_movies/wall_of_movies'
@@ -70,7 +70,6 @@ export function FilmOverlayPanel({
   const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
   const [shareFriendId, setShareFriendId] = useState<string | null>(null)
   const [shareComment, setShareComment] = useState('')
-  const [isInWatchlist, setIsInWatchlist] = useState(false)
 
   const { data: film, isLoading } = useQuery({
     queryKey: ['film', filmId],
@@ -81,6 +80,12 @@ export function FilmOverlayPanel({
   const { data: friends } = useQuery({
     queryKey: ['friends', user?.id],
     queryFn: fetchFriends,
+    enabled: Boolean(user)
+  })
+
+  const { data: watchlist } = useQuery({
+    queryKey: ['watchlist', user?.id],
+    queryFn: fetchWatchlist,
     enabled: Boolean(user)
   })
 
@@ -134,40 +139,22 @@ export function FilmOverlayPanel({
     }
   })
 
+  const addToWatchlistMutation = useMutation({
+    mutationFn: () => addFilmToWatchlist(filmId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist', user?.id] })
+    }
+  })
+
   const resolvedFilm: FilmDetail | null | undefined = film
   const reviews = resolvedFilm?.reviews ?? []
   const averageRating = resolvedFilm?.averageRating
   const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined
-
-  useEffect(() => {
-    if (!user) {
-      setIsInWatchlist(false)
-      return
-    }
-
-    const syncWatchlistState = () => {
-      setIsInWatchlist(isFilmInWatchlist(user.id, filmId))
-    }
-
-    const onWatchlistUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ userId?: string }>).detail
-      if (detail?.userId && detail.userId !== user.id) return
-      syncWatchlistState()
-    }
-
-    syncWatchlistState()
-    window.addEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
-    return () => window.removeEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
-  }, [filmId, user])
+  const isInWatchlist = isFilmInWatchlist(watchlist, filmId)
 
   function addToWatchlist() {
     if (!user || isInWatchlist) return
-    addFilmToWatchlist(user.id, {
-      id: filmId,
-      title: filmTitle,
-      posterUrl: filmPosterUrl ?? resolvedFilm?.poster_url ?? ''
-    })
-    setIsInWatchlist(true)
+    addToWatchlistMutation.mutate()
   }
 
   function shareToDm() {
@@ -204,10 +191,14 @@ export function FilmOverlayPanel({
               <button
                 type="button"
                 onClick={addToWatchlist}
-                disabled={isInWatchlist}
+                disabled={isInWatchlist || addToWatchlistMutation.isPending}
                 className="mt-3 w-full rounded-lg border border-sky-400/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/70 hover:text-white"
               >
-                {isInWatchlist ? 'Déjà dans ma watchlist' : 'Ajouter à ma watchlist'}
+                {isInWatchlist
+                  ? 'Déjà dans ma watchlist'
+                  : addToWatchlistMutation.isPending
+                    ? 'Ajout…'
+                    : 'Ajouter à ma watchlist'}
               </button>
             ) : (
               <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour utiliser la watchlist</p>

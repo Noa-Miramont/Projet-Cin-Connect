@@ -46,6 +46,26 @@ export const reviews = pgTable('reviews', {
   created_at: timestamp('created_at').defaultNow().notNull()
 })
 
+export const watchlistItems = pgTable(
+  'watchlist_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    film_id: uuid('film_id')
+      .notNull()
+      .references(() => films.id, { onDelete: 'cascade' }),
+    created_at: timestamp('created_at').defaultNow().notNull()
+  },
+  (table) => ({
+    userFilmUnique: uniqueIndex('watchlist_items_user_film_unique').on(
+      table.user_id,
+      table.film_id
+    )
+  })
+)
+
 export const friendStatusEnum = pgEnum('friend_status', [
   'PENDING',
   'ACCEPTED',
@@ -98,6 +118,7 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
 
 export const usersRelations = relations(users, ({ many }) => ({
   reviews: many(reviews),
+  watchlistItems: many(watchlistItems),
   sentMessages: many(messages),
   receivedMessages: many(messages),
   passwordResetTokens: many(passwordResetTokens)
@@ -109,12 +130,24 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 
 export const filmsRelations = relations(films, ({ one, many }) => ({
   category: one(categories),
-  reviews: many(reviews)
+  reviews: many(reviews),
+  watchlistItems: many(watchlistItems)
 }))
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
   user: one(users),
   film: one(films)
+}))
+
+export const watchlistItemsRelations = relations(watchlistItems, ({ one }) => ({
+  user: one(users, {
+    fields: [watchlistItems.user_id],
+    references: [users.id]
+  }),
+  film: one(films, {
+    fields: [watchlistItems.film_id],
+    references: [films.id]
+  })
 }))
 
 export const messagesRelations = relations(messages, ({ one }) => ({

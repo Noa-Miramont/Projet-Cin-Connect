@@ -6,6 +6,7 @@ import { FilmCard } from '@/components/FilmCard'
 import MagicRings from '@/components/hero_section/MagicRings'
 import DollyZoom from '@/components/Dolly_zoom/Dolly_zoom'
 import Cubes from '@/components/Cubes/Cubes'
+import { ScrollFillText } from '@/components/ScrollFillText'
 
 export function HomePage() {
   const { data: filmsData, isLoading: filmsLoading } = useQuery({
@@ -177,19 +178,61 @@ export function HomePage() {
 
       <section className="relative overflow-hidden bg-zinc-950 px-6 py-28 md:px-10">
         <div className="absolute left-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="relative mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-extrabold uppercase tracking-tight text-zinc-100 md:text-5xl">
-            A propos du projet
-          </h2>
-          <div className="mt-8 space-y-5 text-lg leading-relaxed text-zinc-400">
-            <p>
-              Dolly Zoom est pense comme une experience de decouverte, pas seulement comme
-              un catalogue.
-            </p>
-            <p>
-              Notre objectif est de mettre les films au centre avec une interface claire,
-              immersive et moderne.
-            </p>
+        <div className="relative mx-auto w-full max-w-4xl px-4">
+          <span className="mb-8 block text-xs font-medium uppercase tracking-wider text-zinc-500 sm:mb-16 sm:text-sm">
+            A PROPOS DU PROJET
+          </span>
+
+          <div className="relative">
+            <div className="absolute bottom-0 left-4 top-0 w-px -translate-x-1/2 bg-zinc-800 md:left-1/2 md:-translate-x-1/2" />
+
+            <div className="relative mb-12 flex items-start sm:mb-24">
+              <div className="absolute left-4 top-3 h-2 w-2 -translate-x-1/2 rounded-full bg-zinc-700 md:left-1/2" />
+              <div className="w-full pl-10 md:w-1/2 md:pl-0 md:pr-12 md:text-right">
+                <span className="mb-4 inline-flex items-center rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 sm:mb-6 sm:px-4 sm:py-2 sm:text-base">
+                  Dolly Zoom ?
+                </span>
+                <ScrollFillText
+                  text="Dolly Zoom n'est pas qu'un simple catalogue. C'est un hommage au cinéma, conçu par et pour les passionnés du septième art. Notre vision est de recréer cette sensation unique de découverte que l'on éprouve en entrant dans une salle obscure."
+                  className="text-base leading-relaxed sm:text-xl lg:text-2xl"
+                  grayClassName="text-zinc-700"
+                  whiteClassName="text-zinc-200"
+                />
+              </div>
+              <div className="hidden w-1/2 pl-12 md:block" />
+            </div>
+
+            <div className="relative mb-12 flex items-start sm:mb-24">
+              <div className="absolute left-4 top-3 h-2 w-2 -translate-x-1/2 rounded-full bg-zinc-700 md:left-1/2" />
+              <div className="hidden w-1/2 pr-12 md:block" />
+              <div className="w-full pl-10 md:w-1/2 md:pl-12">
+                <span className="mb-4 inline-flex items-center rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 sm:mb-6 sm:px-4 sm:py-2 sm:text-base">
+                  Notre plateforme
+                </span>
+                <ScrollFillText
+                  text="À travers une interface minimaliste et immersive, nous mettons en lumière les œuvres qui méritent d'être vues, des chefs-d'œuvre oubliés aux blockbusters de demain. Chaque interaction, chaque pixel a été pensé pour s'effacer devant l'image et l'émotion."
+                  className="text-base leading-relaxed sm:text-xl lg:text-2xl"
+                  grayClassName="text-zinc-700"
+                  whiteClassName="text-zinc-200"
+                />
+              </div>
+            </div>
+
+            <div className="relative flex items-start">
+              <div className="absolute left-4 top-3 h-2 w-2 -translate-x-1/2 rounded-full bg-zinc-700 md:left-1/2" />
+              <div className="w-full pl-10 md:w-1/2 md:pl-0 md:pr-12 md:text-right">
+                <span className="mb-4 inline-flex items-center rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 sm:mb-6 sm:px-4 sm:py-2 sm:text-base">
+                  Votre Experience
+                </span>
+                <ScrollFillText
+                  text="Une fois la découverte lancée, on affine en continu : recommandations plus pertinentes, navigation plus fluide et une expérience toujours plus immersive du premier clic à la dernière image."
+                  className="text-base leading-relaxed sm:text-xl lg:text-2xl"
+                  grayClassName="text-zinc-700"
+                  whiteClassName="text-zinc-200"
+                />
+              </div>
+              <div className="hidden w-1/2 pl-12 md:block" />
+            </div>
           </div>
         </div>
       </section>

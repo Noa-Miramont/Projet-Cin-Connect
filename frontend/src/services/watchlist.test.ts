@@ -1,118 +1,95 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const apiGetMock = vi.fn()
+const apiPostMock = vi.fn()
+const apiDeleteMock = vi.fn()
+
+vi.mock('./api', () => ({
+  api: {
+    get: (...args: unknown[]) => apiGetMock(...args),
+    post: (...args: unknown[]) => apiPostMock(...args),
+    delete: (...args: unknown[]) => apiDeleteMock(...args)
+  }
+}))
+
 import {
   addFilmToWatchlist,
-  getWatchlist,
+  fetchWatchlist,
   isFilmInWatchlist,
-  removeFilmFromWatchlist,
-  WATCHLIST_UPDATED_EVENT
+  removeFilmFromWatchlist
 } from './watchlist'
 
-type LocalStorageLike = {
-  getItem: (key: string) => string | null
-  setItem: (key: string, value: string) => void
-  removeItem: (key: string) => void
-  clear: () => void
-}
-
-function createLocalStorageMock(): LocalStorageLike {
-  const store = new Map<string, string>()
-
-  return {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      store.set(key, value)
-    },
-    removeItem: (key: string) => {
-      store.delete(key)
-    },
-    clear: () => {
-      store.clear()
-    }
-  }
-}
-
 describe('watchlist service', () => {
-  beforeAll(() => {
-    Object.defineProperty(globalThis, 'window', {
-      value: new EventTarget(),
-      configurable: true
-    })
-    Object.defineProperty(globalThis, 'localStorage', {
-      value: createLocalStorageMock(),
-      configurable: true
-    })
-  })
-
   beforeEach(() => {
-    localStorage.clear()
+    vi.clearAllMocks()
   })
 
-  it('stores a film in the Dolly Zoom watchlist key', () => {
-    const result = addFilmToWatchlist('user-1', {
-      id: 'film-1',
-      title: 'Inception',
-      posterUrl: '/poster.jpg'
+  it('fetches the authenticated user watchlist from the API', async () => {
+    apiGetMock.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'film-1',
+          title: 'Inception',
+          posterUrl: '/poster.jpg',
+          addedAt: '2026-03-30T10:00:00.000Z'
+        }
+      ]
     })
 
-    expect(result).toHaveLength(1)
-    expect(localStorage.getItem('dollyzoom_watchlist_user-1')).not.toBeNull()
-    expect(getWatchlist('user-1')).toEqual(result)
-    expect(isFilmInWatchlist('user-1', 'film-1')).toBe(true)
+    await expect(fetchWatchlist()).resolves.toEqual([
+      {
+        id: 'film-1',
+        title: 'Inception',
+        posterUrl: '/poster.jpg',
+        addedAt: '2026-03-30T10:00:00.000Z'
+      }
+    ])
+    expect(apiGetMock).toHaveBeenCalledWith('/watchlist')
   })
 
-  it('does not duplicate a film already in watchlist', () => {
-    addFilmToWatchlist('user-1', {
-      id: 'film-1',
-      title: 'Inception',
-      posterUrl: '/poster.jpg'
+  it('adds a film to the API-backed watchlist', async () => {
+    apiPostMock.mockResolvedValueOnce({
+      data: {
+        id: 'film-1',
+        title: 'Inception',
+        posterUrl: '/poster.jpg',
+        addedAt: '2026-03-30T10:00:00.000Z'
+      }
     })
 
-    const result = addFilmToWatchlist('user-1', {
+    await expect(addFilmToWatchlist('film-1')).resolves.toEqual({
       id: 'film-1',
       title: 'Inception',
-      posterUrl: '/poster.jpg'
+      posterUrl: '/poster.jpg',
+      addedAt: '2026-03-30T10:00:00.000Z'
     })
-
-    expect(result).toHaveLength(1)
-    expect(getWatchlist('user-1')).toHaveLength(1)
+    expect(apiPostMock).toHaveBeenCalledWith('/watchlist', { filmId: 'film-1' })
   })
 
-  it('removes a film from watchlist cleanly', () => {
-    addFilmToWatchlist('user-1', {
-      id: 'film-1',
-      title: 'Inception',
-      posterUrl: '/poster.jpg'
-    })
-    addFilmToWatchlist('user-1', {
-      id: 'film-2',
-      title: 'Interstellar',
-      posterUrl: '/poster-2.jpg'
-    })
+  it('removes a film from the API-backed watchlist', async () => {
+    apiDeleteMock.mockResolvedValueOnce({})
 
-    const result = removeFilmFromWatchlist('user-1', 'film-1')
-
-    expect(result).toHaveLength(1)
-    expect(result[0]?.id).toBe('film-2')
-    expect(isFilmInWatchlist('user-1', 'film-1')).toBe(false)
+    await expect(removeFilmFromWatchlist('film-1')).resolves.toBeUndefined()
+    expect(apiDeleteMock).toHaveBeenCalledWith('/watchlist/film-1')
   })
 
-  it('returns an empty list when stored data is malformed', () => {
-    localStorage.setItem('dollyzoom_watchlist_user-1', '{invalid-json')
-
-    expect(getWatchlist('user-1')).toEqual([])
+  it('detects when a film is already present in a fetched watchlist', () => {
+    expect(
+      isFilmInWatchlist(
+        [
+          {
+            id: 'film-1',
+            title: 'Inception',
+            posterUrl: '/poster.jpg',
+            addedAt: '2026-03-30T10:00:00.000Z'
+          }
+        ],
+        'film-1'
+      )
+    ).toBe(true)
   })
 
-  it('dispatches a watchlist update event when the list changes', () => {
-    const listener = vi.fn()
-
-    window.addEventListener(WATCHLIST_UPDATED_EVENT, listener)
-    addFilmToWatchlist('user-1', {
-      id: 'film-1',
-      title: 'Inception',
-      posterUrl: '/poster.jpg'
-    })
-
-    expect(listener).toHaveBeenCalledTimes(1)
-    window.removeEventListener(WATCHLIST_UPDATED_EVENT, listener)
+  it('returns false when the film is not in the fetched watchlist', () => {
+    expect(isFilmInWatchlist([], 'film-1')).toBe(false)
   })
 })

@@ -11,8 +11,7 @@ import {
 } from '@/services/friends'
 import { fetchConversation } from '@/services/messages'
 import {
-  getWatchlist,
-  WATCHLIST_UPDATED_EVENT,
+  fetchWatchlist,
   type WatchlistFilm
 } from '@/services/watchlist'
 
@@ -69,7 +68,6 @@ export function DiscussionPage() {
   const [activePanel, setActivePanel] = useState<'messages' | 'watchlist'>('messages')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
-  const [watchlist, setWatchlist] = useState<WatchlistFilm[]>([])
   const socketRef = useRef<ReturnType<typeof io> | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const draftConsumedRef = useRef(false)
@@ -96,39 +94,15 @@ export function DiscussionPage() {
     }
   }, [user])
 
-  useEffect(() => {
-    if (!user) {
-      setWatchlist([])
-      return
-    }
-
-    const loadWatchlist = () => {
-      setWatchlist(getWatchlist(user.id))
-    }
-
-    const onStorage = (event: StorageEvent) => {
-      if (event.key && event.key !== `dollyzoom_watchlist_${user.id}`) return
-      loadWatchlist()
-    }
-
-    const onWatchlistUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ userId?: string }>).detail
-      if (detail?.userId && detail.userId !== user.id) return
-      loadWatchlist()
-    }
-
-    loadWatchlist()
-    window.addEventListener('storage', onStorage)
-    window.addEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
-    return () => {
-      window.removeEventListener('storage', onStorage)
-      window.removeEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
-    }
-  }, [user])
-
   const { data: friends } = useQuery({
     queryKey: ['friends', user?.id],
     queryFn: fetchFriends,
+    enabled: !!user
+  })
+
+  const { data: watchlistData } = useQuery<WatchlistFilm[]>({
+    queryKey: ['watchlist', user?.id],
+    queryFn: fetchWatchlist,
     enabled: !!user
   })
 
@@ -228,6 +202,7 @@ export function DiscussionPage() {
   }
 
   const selectedFriend = friends?.find((f) => f.friend_id === selectedFriendId)
+  const watchlist = watchlistData ?? []
   const selectedFriendMessages = messages.filter(
     (m) => m.sender_id === selectedFriendId || m.receiver_id === selectedFriendId
   )
