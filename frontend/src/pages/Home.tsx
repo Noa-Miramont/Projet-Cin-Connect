@@ -6,6 +6,7 @@ import { FilmCard } from '@/components/FilmCard'
 import MagicRings from '@/components/hero_section/MagicRings'
 import DollyZoom from '@/components/Dolly_zoom/Dolly_zoom'
 import Cubes from '@/components/Cubes/Cubes'
+import { ScrollFillText } from '@/components/ScrollFillText'
 
 export function HomePage() {
   const { data: filmsData, isLoading: filmsLoading } = useQuery({
@@ -177,19 +178,76 @@ export function HomePage() {
 
       <section className="relative overflow-hidden bg-zinc-950 px-6 py-28 md:px-10">
         <div className="absolute left-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="relative mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-extrabold uppercase tracking-tight text-zinc-100 md:text-5xl">
-            A propos du projet
-          </h2>
-          <div className="mt-8 space-y-5 text-lg leading-relaxed text-zinc-400">
-            <p>
-              Dolly Zoom est pense comme une experience de decouverte, pas seulement comme
-              un catalogue.
-            </p>
-            <p>
-              Notre objectif est de mettre les films au centre avec une interface claire,
-              immersive et moderne.
-            </p>
+        <div className="relative w-full max-w-4xl mx-auto px-4">
+          <span className="text-xs sm:text-sm font-medium uppercase tracking-wider mb-8 sm:mb-16 text-zinc-500 block">
+            A PROPOS DU PROJET
+          </span>
+
+          {/* Timeline - Mobile: vertical simple, Desktop: alternating */}
+          <div className="relative">
+            {/* Ligne verticale - à gauche sur mobile, centrée sur desktop */}
+            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-px bg-zinc-800 md:-translate-x-1/2" />
+
+            {/* Étape 1 - Analyse */}
+            <div className="relative flex items-start mb-12 sm:mb-24">
+              {/* Point sur la ligne */}
+              <div className="absolute left-4 md:left-1/2 w-2 h-2 bg-zinc-700 rounded-full -translate-x-1/2 top-3" />
+
+              {/* Mobile: tout à droite, Desktop: gauche */}
+              <div className="w-full pl-10 md:pl-0 md:w-1/2 md:pr-12 md:text-right">
+                <span className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm sm:text-base font-medium bg-zinc-800 mb-4 sm:mb-6 text-zinc-200">
+                  Dolly Zoom ?
+                </span>
+                <ScrollFillText
+                  text="CineConnect n'est pas qu'un simple catalogue. C'est un hommage au cinéma, conçu par et pour les passionnés du septième art. Notre vision est de recréer cette sensation unique de découverte que l'on éprouve en entrant dans une salle obscure."
+                  className="text-base sm:text-xl lg:text-2xl leading-relaxed"
+                  grayClassName="text-zinc-700"
+                  whiteClassName="text-zinc-200"
+                />
+              </div>
+              <div className="hidden md:block w-1/2 pl-12" />
+            </div>
+
+            {/* Étape 2 - Développement */}
+            <div className="relative flex items-start mb-12 sm:mb-24">
+              {/* Point sur la ligne */}
+              <div className="absolute left-4 md:left-1/2 w-2 h-2 bg-zinc-700 rounded-full -translate-x-1/2 top-3" />
+
+              {/* Mobile: tout à droite, Desktop: droite */}
+              <div className="hidden md:block w-1/2 pr-12" />
+              <div className="w-full pl-10 md:pl-12 md:w-1/2">
+                <span className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm sm:text-base font-medium bg-zinc-800 mb-4 sm:mb-6 text-zinc-200">
+                  Notre plateforme
+                </span>
+                <ScrollFillText
+                  text="À travers une interface minimaliste et immersive, nous mettons en lumière les œuvres qui méritent d'être vues, des chefs-d'œuvre oubliés aux blockbusters de demain. Chaque interaction, chaque pixel a été pensé pour s'effacer devant l'image et l'émotion."
+                  className="text-base sm:text-xl lg:text-2xl leading-relaxed"
+                  grayClassName="text-zinc-700"
+                  whiteClassName="text-zinc-200"
+                />
+              </div>
+            </div>
+
+            {/* Étape 3 - Suivi & optimisation */}
+            <div className="relative flex items-start">
+              {/* Point sur la ligne */}
+              <div className="absolute left-4 md:left-1/2 w-2 h-2 bg-zinc-700 rounded-full -translate-x-1/2 top-3" />
+
+              {/* Mobile: tout à droite, Desktop: gauche */}
+              <div className="w-full pl-10 md:pl-0 md:w-1/2 md:pr-12 md:text-right">
+                <span className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-sm sm:text-base font-medium bg-zinc-800 mb-4 sm:mb-6 text-zinc-200">
+                  Votre Expérience 
+                </span>
+
+                <ScrollFillText
+                  text="Une fois la découverte lancée, on affine en continu : recommandations plus pertinentes, navigation plus fluide et une expérience toujours plus immersive du premier clic à la dernière image."
+                  className="text-base sm:text-xl lg:text-2xl leading-relaxed"
+                  grayClassName="text-zinc-700"
+                  whiteClassName="text-zinc-200"
+                />
+              </div>
+              <div className="hidden md:block w-1/2 pl-12" />
+            </div>
           </div>
         </div>
       </section>
