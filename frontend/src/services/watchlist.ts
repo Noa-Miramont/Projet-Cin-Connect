@@ -5,8 +5,10 @@ export type WatchlistFilm = {
   addedAt: string
 }
 
+export const WATCHLIST_UPDATED_EVENT = 'dollyzoom-watchlist-updated'
+
 function getWatchlistStorageKey(userId: string) {
-  return `cineconnect_watchlist_${userId}`
+  return `dollyzoom_watchlist_${userId}`
 }
 
 export function getWatchlist(userId: string): WatchlistFilm[] {
@@ -30,6 +32,13 @@ export function getWatchlist(userId: string): WatchlistFilm[] {
 
 function saveWatchlist(userId: string, value: WatchlistFilm[]) {
   localStorage.setItem(getWatchlistStorageKey(userId), JSON.stringify(value))
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(WATCHLIST_UPDATED_EVENT, {
+        detail: { userId, watchlist: value }
+      })
+    )
+  }
 }
 
 export function isFilmInWatchlist(userId: string, filmId: string) {

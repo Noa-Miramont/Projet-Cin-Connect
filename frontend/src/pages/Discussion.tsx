@@ -10,7 +10,11 @@ import {
   fetchFriends
 } from '@/services/friends'
 import { fetchConversation } from '@/services/messages'
-import { getWatchlist, type WatchlistFilm } from '@/services/watchlist'
+import {
+  getWatchlist,
+  WATCHLIST_UPDATED_EVENT,
+  type WatchlistFilm
+} from '@/services/watchlist'
 
 type Message = {
   id: string
@@ -32,6 +36,22 @@ function formatDay(value: string) {
     day: '2-digit',
     month: 'long',
     year: 'numeric'
+  })
+}
+
+type FilmDetailNavigation = (options: {
+  to: '/film/$id'
+  params: { id: string }
+}) => void
+
+export function navigateToWatchlistFilm(
+  navigate: FilmDetailNavigation,
+  filmId: string
+) {
+  if (!filmId) return
+  navigate({
+    to: '/film/$id',
+    params: { id: filmId }
   })
 }
 
@@ -63,7 +83,7 @@ export function DiscussionPage() {
   useEffect(() => {
     if (!user) return
     if (draftConsumedRef.current) return
-    const raw = sessionStorage.getItem('cineconnect_dm_draft')
+    const raw = sessionStorage.getItem('dollyzoom_dm_draft')
     if (!raw) return
     try {
       const parsed = JSON.parse(raw) as { friendId?: string; content?: string }
@@ -71,7 +91,7 @@ export function DiscussionPage() {
       if (parsed.content) setInput(parsed.content)
     } catch {
     } finally {
-      sessionStorage.removeItem('cineconnect_dm_draft')
+      sessionStorage.removeItem('dollyzoom_dm_draft')
       draftConsumedRef.current = true
     }
   }, [user])
@@ -86,9 +106,24 @@ export function DiscussionPage() {
       setWatchlist(getWatchlist(user.id))
     }
 
+    const onStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== `dollyzoom_watchlist_${user.id}`) return
+      loadWatchlist()
+    }
+
+    const onWatchlistUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId?: string }>).detail
+      if (detail?.userId && detail.userId !== user.id) return
+      loadWatchlist()
+    }
+
     loadWatchlist()
-    window.addEventListener('storage', loadWatchlist)
-    return () => window.removeEventListener('storage', loadWatchlist)
+    window.addEventListener('storage', onStorage)
+    window.addEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
+    }
   }, [user])
 
   const { data: friends } = useQuery({
@@ -186,6 +221,10 @@ export function DiscussionPage() {
       content: input.trim()
     })
     setInput('')
+  }
+
+  function openWatchlistFilm(filmId: string) {
+    navigateToWatchlistFilm(navigate as FilmDetailNavigation, filmId)
   }
 
   const selectedFriend = friends?.find((f) => f.friend_id === selectedFriendId)
@@ -381,9 +420,11 @@ export function DiscussionPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
                     {watchlist.map((film) => (
-                      <article
+                      <button
                         key={film.id}
-                        className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/70"
+                        type="button"
+                        onClick={() => openWatchlistFilm(film.id)}
+                        className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/70 text-left transition hover:border-sky-400/40 hover:bg-zinc-900"
                       >
                         <img src={film.posterUrl} alt={film.title} className="h-56 w-full object-cover" />
                         <div className="p-3">
@@ -392,7 +433,7 @@ export function DiscussionPage() {
                             Ajoute le {new Date(film.addedAt).toLocaleDateString('fr-FR')}
                           </p>
                         </div>
-                      </article>
+                      </button>
                     ))}
                   </div>
                 )}

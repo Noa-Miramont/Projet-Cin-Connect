@@ -48,7 +48,7 @@ export function HomePage() {
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 flex h-full w-full items-center justify-center px-4">
           <h1 className="text-center text-6xl font-extrabold uppercase tracking-tight text-white md:text-8xl lg:text-9xl">
-            CineConnect
+            Dolly Zoom
           </h1>
         </div>
       </section>
@@ -56,7 +56,7 @@ export function HomePage() {
       <section className="bg-zinc-900 px-6 py-24 md:px-10">
         <div className="mx-auto max-w-7xl">
           <h2 className="text-3xl font-extrabold uppercase tracking-tight text-zinc-100 md:text-5xl">
-            Pourquoi CineConnect
+            Pourquoi Dolly Zoom
           </h2>
           <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
             {[
@@ -183,7 +183,7 @@ export function HomePage() {
           </h2>
           <div className="mt-8 space-y-5 text-lg leading-relaxed text-zinc-400">
             <p>
-              CineConnect est pense comme une experience de decouverte, pas seulement comme
+              Dolly Zoom est pense comme une experience de decouverte, pas seulement comme
               un catalogue.
             </p>
             <p>
@@ -217,7 +217,7 @@ export function HomePage() {
             </div>
             <div className="h-48 w-full max-w-5xl">
               <DollyZoom
-                text="cineconnect"
+                text="dolly zoom"
                 flex
                 alpha
                 stroke={false}
@@ -233,8 +233,8 @@ export function HomePage() {
 
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="text-center md:text-left">
-              <p className="text-lg font-bold text-zinc-200">CineConnect</p>
-              <p className="text-xs text-zinc-500">2026 CineConnect. A cinephile project.</p>
+              <p className="text-lg font-bold text-zinc-200">Dolly Zoom</p>
+              <p className="text-xs text-zinc-500">2026 Dolly Zoom. A Cinephile Project.</p>
             </div>
             <div className="flex gap-6 text-xs text-zinc-500">
               <a href="#" className="transition hover:text-sky-400">

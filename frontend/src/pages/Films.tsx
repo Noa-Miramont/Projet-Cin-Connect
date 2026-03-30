@@ -1,13 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { fetchFilm, fetchFilms, type FilmDetail } from '@/services/films'
 import { fetchCategories } from '@/services/categories'
 import { createReview, deleteReview, replaceReview } from '@/services/reviews'
 import { fetchFriends } from '@/services/friends'
-import { addFilmToWatchlist } from '@/services/watchlist'
+import {
+  addFilmToWatchlist,
+  isFilmInWatchlist,
+  WATCHLIST_UPDATED_EVENT
+} from '@/services/watchlist'
 import { useAuth } from '@/contexts/AuthContext'
 import DomeGallery from '@/components/wall_of_movies/wall_of_movies'
+
+function getMutationErrorMessage(error: unknown) {
+  return (
+    (error as any)?.response?.data?.message ??
+    (error as any)?.response?.data?.error ??
+    (error as Error).message
+  )
+}
 
 function StarRating({
   value,
@@ -38,7 +50,7 @@ function StarRating({
   )
 }
 
-function FilmOverlayPanel({
+export function FilmOverlayPanel({
   filmId,
   filmTitle,
   filmPosterUrl
@@ -58,6 +70,7 @@ function FilmOverlayPanel({
   const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
   const [shareFriendId, setShareFriendId] = useState<string | null>(null)
   const [shareComment, setShareComment] = useState('')
+  const [isInWatchlist, setIsInWatchlist] = useState(false)
 
   const { data: film, isLoading } = useQuery({
     queryKey: ['film', filmId],
@@ -66,7 +79,7 @@ function FilmOverlayPanel({
   })
 
   const { data: friends } = useQuery({
-    queryKey: ['friends'],
+    queryKey: ['friends', user?.id],
     queryFn: fetchFriends,
     enabled: Boolean(user)
   })
@@ -84,8 +97,8 @@ function FilmOverlayPanel({
       setRating(0)
       setCreateErrorStatus(null)
     },
-    onError: (err) => {
-      const status = (err as any)?.response?.status as number | undefined
+    onError: (mutationError) => {
+      const status = (mutationError as any)?.response?.status as number | undefined
       setCreateErrorStatus(status ?? null)
       if (status === 409) {
         setReplaceOpen(true)
@@ -126,13 +139,35 @@ function FilmOverlayPanel({
   const averageRating = resolvedFilm?.averageRating
   const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined
 
+  useEffect(() => {
+    if (!user) {
+      setIsInWatchlist(false)
+      return
+    }
+
+    const syncWatchlistState = () => {
+      setIsInWatchlist(isFilmInWatchlist(user.id, filmId))
+    }
+
+    const onWatchlistUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId?: string }>).detail
+      if (detail?.userId && detail.userId !== user.id) return
+      syncWatchlistState()
+    }
+
+    syncWatchlistState()
+    window.addEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
+    return () => window.removeEventListener(WATCHLIST_UPDATED_EVENT, onWatchlistUpdated)
+  }, [filmId, user])
+
   function addToWatchlist() {
-    if (!user) return
+    if (!user || isInWatchlist) return
     addFilmToWatchlist(user.id, {
       id: filmId,
       title: filmTitle,
       posterUrl: filmPosterUrl ?? resolvedFilm?.poster_url ?? ''
     })
+    setIsInWatchlist(true)
   }
 
   function shareToDm() {
@@ -141,156 +176,170 @@ function FilmOverlayPanel({
     const extra = shareComment.trim() ? `\n\nMon message: ${shareComment.trim()}` : ''
     const content = `${base}${extra}`
     sessionStorage.setItem(
-      'cineconnect_dm_draft',
+      'dollyzoom_dm_draft',
       JSON.stringify({ friendId: shareFriendId, content })
     )
     navigate({ to: '/discussion' })
+  }
+
+  function openFilmPage() {
+    navigate({ to: '/film/$id', params: { id: filmId } })
   }
 
   return (
     <div className="mx-auto w-full max-w-9xl">
       <div className="max-h-[calc(100vh-220px)] w-full overflow-y-auto pr-1 md:max-h-none md:overflow-visible">
         <div className="flex w-full flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-12">
-          <div className="w-full rounded-non border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-white">Commentaires</h3>
-          {averageRating != null ? (
-            <div className="text-sm text-zinc-300">=
-              Note moyenne: {averageRating.toFixed(1)} / 5
+          <div className="w-full rounded-none border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-white">Commentaires</h3>
+              {averageRating != null ? (
+                <div className="text-sm text-zinc-300">Note moyenne: {averageRating.toFixed(1)} / 5</div>
+              ) : (
+                <div className="text-sm text-zinc-400">Aucune note pour l’instant</div>
+              )}
             </div>
-          ) : (
-            <div className="text-sm text-zinc-400">Aucune note pour l’instant</div>
-          )}
-        </div>
-        {user ? (
-          <button
-            type="button"
-            onClick={addToWatchlist}
-            className="mt-3 w-full rounded-lg border border-sky-400/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/70 hover:text-white"
-          >
-            Ajouter à ma watchlist
-          </button>
-        ) : (
-          <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour utiliser la watchlist</p>
-        )}
 
-        {isLoading ? (
-          <div className="mt-4 space-y-3">
-            <div className="h-16 animate-pulse rounded-none bg-zinc-800/60" />
-            <div className="h-16 animate-pulse rounded-none bg-zinc-800/60" />
-          </div>
-        ) : (
-          <ul className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
-            {reviews.length === 0 ? (
-              <li className="text-sm text-zinc-400">Soyez le premier à commenter</li>
+            {user ? (
+              <button
+                type="button"
+                onClick={addToWatchlist}
+                disabled={isInWatchlist}
+                className="mt-3 w-full rounded-lg border border-sky-400/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/70 hover:text-white"
+              >
+                {isInWatchlist ? 'Déjà dans ma watchlist' : 'Ajouter à ma watchlist'}
+              </button>
             ) : (
-              reviews.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-none border border-zinc-800 bg-zinc-900/50 p-3"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-white">{r.username}</span>
-                    <span className="text-sm text-zinc-200">{r.rating}/5</span>
-                  </div>
-                  {r.comment ? (
-                    <p className="mt-2 text-sm text-zinc-300">{r.comment}</p>
-                  ) : null}
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {new Date(r.created_at).toLocaleDateString('fr-FR')}
-                  </p>
-                </li>
-              ))
+              <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour utiliser la watchlist</p>
             )}
-          </ul>
-        )}
-      </div>
+
+            {isLoading ? (
+              <div className="mt-4 space-y-3">
+                <div className="h-16 animate-pulse rounded-none bg-zinc-800/60" />
+                <div className="h-16 animate-pulse rounded-none bg-zinc-800/60" />
+              </div>
+            ) : (
+              <ul className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
+                {reviews.length === 0 ? (
+                  <li className="text-sm text-zinc-400">Soyez le premier à commenter</li>
+                ) : (
+                  reviews.map((review) => (
+                    <li
+                      key={review.id}
+                      className="rounded-none border border-zinc-800 bg-zinc-900/50 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-medium text-white">{review.username}</span>
+                        <span className="text-sm text-zinc-200">{review.rating}/5</span>
+                      </div>
+                      {review.comment ? (
+                        <p className="mt-2 text-sm text-zinc-300">{review.comment}</p>
+                      ) : null}
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {new Date(review.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
 
           <div className="hidden md:block md:w-[420px] md:shrink-0" />
 
           <div className="w-full rounded-none border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur md:w-[440px]">
-        <h3 className="text-base font-semibold text-white">Votre avis</h3>
-        {user ? (
-          <div className="mt-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-zinc-300">Note</span>
-              <StarRating value={rating} onChange={setRating} />
-            </div>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              placeholder="Ajouter un commentaire (optionnel)"
-              className="w-full border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
-            />
-            <button
-              type="button"
-              onClick={() => createReviewMutation.mutate()}
-              disabled={createReviewMutation.isPending || rating === 0}
-              className="w-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-white disabled:opacity-50"
-            >
-              {createReviewMutation.isPending ? 'Envoi…' : 'Publier'}
-            </button>
-            {myReview ? (
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                disabled={deleteReviewMutation.isPending}
-                className="mt-2 w-full border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
-              >
-                {deleteReviewMutation.isPending ? 'Suppression…' : 'Supprimer mon avis'}
-              </button>
-            ) : null}
-            {createReviewMutation.isError && createErrorStatus !== 409 ? (
-              <p className="text-sm text-red-400">
-                {(createReviewMutation.error as any)?.response?.data?.error ??
-                  (createReviewMutation.error as Error).message}
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour noter et commenter</p>
-        )}
+            <h3 className="text-base font-semibold text-white">Votre avis</h3>
+            {user ? (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-zinc-300">Note</span>
+                  <StarRating value={rating} onChange={setRating} />
+                </div>
+                <textarea
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  rows={3}
+                  placeholder="Ajouter un commentaire (optionnel)"
+                  className="w-full border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => createReviewMutation.mutate()}
+                  disabled={createReviewMutation.isPending || rating === 0}
+                  className="w-full bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-white disabled:opacity-50"
+                >
+                  {createReviewMutation.isPending ? 'Envoi…' : 'Publier'}
+                </button>
+                {myReview ? (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteOpen(true)}
+                    disabled={deleteReviewMutation.isPending}
+                    className="w-full rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:border-red-400 hover:text-white disabled:opacity-50"
+                  >
+                    {deleteReviewMutation.isPending ? 'Suppression…' : 'Supprimer mon avis'}
+                  </button>
+                ) : null}
+                {createReviewMutation.isError && createErrorStatus !== 409 ? (
+                  <p className="text-sm text-red-400">
+                    {getMutationErrorMessage(createReviewMutation.error)}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour noter et commenter</p>
+            )}
 
-        <div className="mt-5 border-t border-zinc-800 pt-4">
-          <h3 className="text-base font-semibold text-white">Partager en DM</h3>
-          {user ? (
-            <div className="mt-3 space-y-3">
-              <select
-                value={shareFriendId ?? ''}
-                onChange={(e) => setShareFriendId(e.target.value || null)}
-                className="w-full rounded-none border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
-              >
-                <option value="">Choisir un ami</option>
-                {(friends ?? []).map((f) => (
-                  <option key={f.id} value={f.friend_id}>
-                    {f.username}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                value={shareComment}
-                onChange={(e) => setShareComment(e.target.value)}
-                rows={2}
-                placeholder="Ajouter un commentaire pour votre ami (optionnel)"
-                className="w-full rounded-none border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
-              />
+            <div className="mt-5 border-t border-zinc-800 pt-4">
               <button
                 type="button"
-                onClick={shareToDm}
-                disabled={!shareFriendId}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+                onClick={openFilmPage}
+                className="w-full rounded-lg border border-sky-400/40 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:border-sky-300/70 hover:text-white"
               >
-                Partager
+                Voir la page du film
               </button>
             </div>
-          ) : (
-            <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour partager en DM</p>
-          )}
+
+            <div className="mt-5 border-t border-zinc-800 pt-4">
+              <h3 className="text-base font-semibold text-white">Partager en DM</h3>
+              {user ? (
+                <div className="mt-3 space-y-3">
+                  <select
+                    value={shareFriendId ?? ''}
+                    onChange={(event) => setShareFriendId(event.target.value || null)}
+                    className="w-full rounded-none border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
+                  >
+                    <option value="">Choisir un ami</option>
+                    {(friends ?? []).map((friend) => (
+                      <option key={friend.id} value={friend.friend_id}>
+                        {friend.username}
+                      </option>
+                    ))}
+                  </select>
+                  <textarea
+                    value={shareComment}
+                    onChange={(event) => setShareComment(event.target.value)}
+                    rows={2}
+                    placeholder="Ajouter un commentaire pour votre ami (optionnel)"
+                    className="w-full rounded-none border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder:text-zinc-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={shareToDm}
+                    disabled={!shareFriendId}
+                    className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm font-semibold text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
+                  >
+                    Partager
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-zinc-400">Connectez-vous pour partager en DM</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-        </div>
-      </div>
+
       {replaceOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-none border border-zinc-800 bg-zinc-950 p-6">
@@ -298,8 +347,7 @@ function FilmOverlayPanel({
               Vous avez déjà noté ce film
             </h3>
             <p className="mt-3 text-center text-sm text-zinc-300">
-              Si vous envoyez une nouvelle note, votre ancienne note sera remplacée
-              par la nouvelle.
+              Si vous envoyez une nouvelle note, votre ancienne note sera remplacée par la nouvelle.
             </p>
 
             <div className="mt-5 flex gap-3">
@@ -309,9 +357,7 @@ function FilmOverlayPanel({
                 disabled={updateReviewMutation.isPending}
                 className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
               >
-                {updateReviewMutation.isPending
-                  ? 'Remplacement…'
-                  : 'Remplacer ma note'}
+                {updateReviewMutation.isPending ? 'Remplacement…' : 'Remplacer ma note'}
               </button>
               <button
                 type="button"
@@ -325,13 +371,13 @@ function FilmOverlayPanel({
 
             {updateReviewMutation.isError ? (
               <p className="mt-4 text-center text-sm text-red-400">
-                {(updateReviewMutation.error as any)?.response?.data?.error ??
-                  (updateReviewMutation.error as Error).message}
+                {getMutationErrorMessage(updateReviewMutation.error)}
               </p>
             ) : null}
           </div>
         </div>
       ) : null}
+
       {deleteOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-md rounded-none border border-zinc-800 bg-zinc-950 p-6">
@@ -363,8 +409,7 @@ function FilmOverlayPanel({
 
             {deleteReviewMutation.isError ? (
               <p className="mt-4 text-center text-sm text-red-400">
-                {(deleteReviewMutation.error as any)?.response?.data?.error ??
-                  (deleteReviewMutation.error as Error).message}
+                {getMutationErrorMessage(deleteReviewMutation.error)}
               </p>
             ) : null}
           </div>
@@ -395,8 +440,8 @@ export function FilmsPage() {
   const images = useMemo(
     () =>
       (data?.films ?? [])
-        .filter(film => Boolean(film.poster_url))
-        .map(film => ({
+        .filter((film) => Boolean(film.poster_url))
+        .map((film) => ({
           id: film.id,
           src: film.poster_url as string,
           alt: film.title,
@@ -420,11 +465,8 @@ export function FilmsPage() {
           <h2 className="text-sm font-semibold text-zinc-300">Parcourir par catégorie</h2>
           {categoriesLoading ? (
             <div className="flex gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 w-20 animate-pulse rounded-none bg-zinc-800"
-                />
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="h-10 w-20 animate-pulse rounded-none bg-zinc-800" />
               ))}
             </div>
           ) : (
@@ -440,24 +482,25 @@ export function FilmsPage() {
               >
                 Tous
               </button>
-              {(categories ?? []).map((cat) => (
+              {(categories ?? []).map((category) => (
                 <button
-                  key={cat.id}
+                  key={category.id}
                   type="button"
-                  onClick={() => setSelectedCategoryId(cat.id)}
+                  onClick={() => setSelectedCategoryId(category.id)}
                   className={`rounded-none border px-4 py-2 text-sm transition ${
-                    selectedCategoryId === cat.id
+                    selectedCategoryId === category.id
                       ? 'border-zinc-500/60 bg-zinc-100/10 text-white'
                       : 'border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-500/60 hover:text-white'
                   }`}
                 >
-                  {cat.name}
+                  {category.name}
                 </button>
               ))}
             </div>
           )}
         </div>
       </section>
+
       <div className="min-h-0 flex-1">
         <DomeGallery
           images={images}

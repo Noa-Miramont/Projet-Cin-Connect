@@ -10,7 +10,7 @@ export function Navbar() {
     return (
       <header className="border-b border-zinc-800 bg-zinc-950/70 px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <span className="text-lg font-semibold text-white">CinéConnect</span>
+          <span className="text-lg font-semibold text-white">Dolly Zoom</span>
           <span className="text-zinc-500">Chargement…</span>
         </div>
       </header>

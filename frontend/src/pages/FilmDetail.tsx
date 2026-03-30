@@ -1,37 +1,60 @@
 import { useState } from 'react'
-import { Link, useParams } from '@tanstack/react-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchFilm } from '@/services/films'
 import { createReview, deleteReview, replaceReview } from '@/services/reviews'
+import { fetchFriends } from '@/services/friends'
 import { useAuth } from '@/contexts/AuthContext'
 import { PosterImage } from '@/components/PosterImage'
 
+function getMutationErrorMessage(error: unknown) {
+  return (
+    (error as any)?.response?.data?.message ??
+    (error as any)?.response?.data?.error ??
+    (error as Error).message
+  )
+}
+
 export function FilmDetailPage() {
   const { id } = useParams({ from: '/film/$id' })
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
-  const [rating, setRating] = useState(3)
+
+  const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [replaceOpen, setReplaceOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [createErrorStatus, setCreateErrorStatus] = useState<number | null>(null)
+  const [shareFriendId, setShareFriendId] = useState<string | null>(null)
+  const [shareComment, setShareComment] = useState('')
 
   const { data: film, isLoading, error } = useQuery({
     queryKey: ['film', id],
     queryFn: () => fetchFilm(id)
   })
 
+  const { data: friends } = useQuery({
+    queryKey: ['friends', user?.id],
+    queryFn: fetchFriends,
+    enabled: Boolean(user)
+  })
+
   const createReviewMutation = useMutation({
     mutationFn: () =>
-      createReview({ filmId: id, rating, comment: comment || undefined }),
+      createReview({
+        filmId: id,
+        rating,
+        comment: comment.trim() ? comment.trim() : undefined
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['film', id] })
       setComment('')
-      setRating(3)
+      setRating(0)
       setCreateErrorStatus(null)
     },
-    onError: (err) => {
-      const status = (err as any)?.response?.status as number | undefined
+    onError: (mutationError) => {
+      const status = (mutationError as any)?.response?.status as number | undefined
       setCreateErrorStatus(status ?? null)
       if (status === 409) {
         setReplaceOpen(true)
@@ -44,12 +67,12 @@ export function FilmDetailPage() {
       replaceReview({
         filmId: id,
         rating,
-        comment: comment || undefined
+        comment: comment.trim() ? comment.trim() : undefined
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['film', id] })
       setComment('')
-      setRating(3)
+      setRating(0)
       setReplaceOpen(false)
       setCreateErrorStatus(null)
     }
@@ -60,24 +83,36 @@ export function FilmDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['film', id] })
       setComment('')
-      setRating(3)
+      setRating(0)
       setDeleteOpen(false)
       setReplaceOpen(false)
       setCreateErrorStatus(null)
     }
   })
 
+  function shareToDm() {
+    if (!shareFriendId || !film) return
+    const base = `Je te partage le film "${film.title}"`
+    const extra = shareComment.trim() ? `\n\nMon message: ${shareComment.trim()}` : ''
+    const content = `${base}${extra}`
+    sessionStorage.setItem(
+      'dollyzoom_dm_draft',
+      JSON.stringify({ friendId: shareFriendId, content })
+    )
+    navigate({ to: '/discussion' })
+  }
+
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <div className="h-96 animate-pulse rounded-lg bg-zinc-900" />
+      <div className="min-h-[calc(100vh-80px)] bg-[#131313] px-4 py-8 md:px-8">
+        <div className="mx-auto h-96 max-w-7xl animate-pulse rounded-xl bg-zinc-900" />
       </div>
     )
   }
 
   if (error || !film) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12 text-center">
+      <div className="min-h-[calc(100vh-80px)] bg-[#131313] px-4 py-12 text-center">
         <p className="text-zinc-400">Film non trouvé.</p>
         <Link to="/films" className="mt-4 inline-block text-zinc-200 hover:underline">
           Retour aux films
@@ -88,127 +123,240 @@ export function FilmDetailPage() {
 
   const reviews = film.reviews ?? []
   const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined
+  const backdropImage =
+    film.poster_url ||
+    'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1920&auto=format&fit=crop'
+  const averageLabel = film.averageRating != null ? film.averageRating.toFixed(1) : 'N/A'
+  const ratingDots = Array.from({ length: 5 }, (_, index) => {
+    const roundedAverage = Math.round(film.averageRating ?? 0)
+    return index < roundedAverage
+  })
 
   return (
     <>
-      <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="grid gap-8 md:grid-cols-[280px_1fr]">
-        <div>
-          <div className="aspect-[2/3] overflow-hidden rounded-lg bg-zinc-900">
-            <PosterImage
-              src={film.poster_url}
-              alt={film.title}
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div className="mt-4">
-            <h1 className="text-2xl font-bold text-white">{film.title}</h1>
-            {film.director && (
-              <p className="mt-1 text-zinc-400">Réal. {film.director}</p>
-            )}
-            {film.year != null && (
-              <p className="text-zinc-400">{film.year}</p>
-            )}
-            {film.averageRating != null && (
-              <p className="mt-2 text-zinc-300">
-                Note moyenne : {film.averageRating.toFixed(1)} / 5
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          {film.description && (
-            <p className="text-zinc-300">{film.description}</p>
-          )}
-
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold text-white">Avis</h2>
-            <ul className="mt-4 space-y-4">
-              {reviews.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-white">{r.username}</span>
-                    <span className="text-zinc-200">{r.rating}/5</span>
-                  </div>
-                  {r.comment && (
-                    <p className="mt-2 text-sm text-zinc-400">{r.comment}</p>
-                  )}
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {new Date(r.created_at).toLocaleDateString('fr-FR')}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {user && (
-            <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-              <h3 className="font-medium text-white">Ajouter un avis</h3>
-              <div className="mt-3 space-y-3">
+      <main className="min-h-[calc(100vh-80px)] bg-[#131313] pb-20 text-[#e2e2e2]">
+        <section className="relative h-[50vh] min-h-[320px] max-h-[520px] w-full overflow-hidden md:h-[56vh]">
+          <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#131313] via-[#131313]/40 to-transparent" />
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#131313] via-[#131313]/20 to-transparent" />
+          <img src={backdropImage} alt={film.title} className="h-full w-full scale-105 object-cover" />
+          <div className="absolute bottom-0 left-0 z-20 w-full p-6 md:p-12">
+            <div className="mb-3 flex items-center gap-3">
+              <span className="rounded bg-[#009dff] px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#003257]">
+                Film
+              </span>
+              {film.year != null ? (
+                <span className="text-sm font-medium text-[#bfc7d4]">{film.year}</span>
+              ) : null}
+            </div>
+            <h1 className="max-w-4xl text-5xl font-black uppercase tracking-tight md:text-7xl">
+              {film.title}
+            </h1>
+            <div className="mt-4 flex flex-wrap items-center gap-8">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#89919e]">Réalisateur</p>
+                <p className="text-lg font-bold">{film.director || 'Inconnu'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#89919e]">Note moyenne</p>
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-zinc-400">Note :</label>
-                  <select
-                    value={rating}
-                    onChange={(e) => setRating(Number(e.target.value))}
-                    className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-white"
-                  >
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
+                  <span className="text-2xl font-black text-[#9dcaff]">{averageLabel}</span>
+                  <div className="flex gap-1">
+                    {ratingDots.map((filled, index) => (
+                      <span
+                        key={index}
+                        className={`h-2.5 w-2.5 rounded-full ${filled ? 'bg-[#009dff]' : 'bg-[#3f4752]'}`}
+                      />
                     ))}
-                  </select>
+                  </div>
                 </div>
-                <textarea
-                  placeholder="Votre avis (optionnel)"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={3}
-                  className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-white"
+              </div>
+              <Link
+                to="/films"
+                className="rounded-md border border-[#009dff]/40 bg-[#009dff]/10 px-6 py-3 text-sm font-bold uppercase tracking-widest text-[#9dcaff] transition hover:border-[#009dff] hover:text-white"
+              >
+                Retour aux films
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 gap-10 px-4 py-12 md:px-8 lg:grid-cols-12 lg:gap-12">
+          <div className="lg:col-span-8">
+            <div className="mb-10 rounded-xl border border-white/5 bg-[#1b1b1b] p-6">
+              <h2 className="text-2xl font-black uppercase tracking-tight">
+                Description <span className="text-[#009dff]">du film</span>
+              </h2>
+              <p className="mt-4 leading-relaxed text-[#bfc7d4]">
+                {film.description || 'Aucune description disponible pour ce film.'}
+              </p>
+            </div>
+
+            <section className="mb-10 rounded-xl border border-white/5 bg-[#1b1b1b] p-6">
+              <h3 className="text-xl font-black uppercase tracking-widest text-[#9dcaff]">
+                Noter ce film
+              </h3>
+              {user ? (
+                <div className="mt-4 space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setRating(value)}
+                        className={`rounded-md border px-4 py-2 text-sm font-bold transition ${
+                          value <= rating
+                            ? 'border-[#009dff] bg-[#009dff]/15 text-[#9dcaff]'
+                            : 'border-[#3f4752] bg-[#131313] text-[#89919e] hover:border-[#009dff]/60'
+                        }`}
+                      >
+                        {value} étoile{value > 1 ? 's' : ''}
+                      </button>
+                    ))}
+                  </div>
+
+                  {myReview ? (
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#89919e]">
+                      Votre avis actuel: {myReview.rating}/5
+                    </p>
+                  ) : null}
+
+                  <textarea
+                    placeholder="Partage ton avis..."
+                    value={comment}
+                    onChange={(event) => setComment(event.target.value)}
+                    rows={4}
+                    className="w-full rounded-md border border-white/10 bg-[#0e0e0e] p-3 text-sm text-[#e2e2e2] outline-none transition focus:border-[#009dff]"
+                  />
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => createReviewMutation.mutate()}
+                      disabled={createReviewMutation.isPending || rating === 0}
+                      className="rounded-md bg-[#009dff] px-8 py-3 text-sm font-bold uppercase tracking-widest text-[#003257] transition hover:brightness-110 disabled:opacity-50"
+                    >
+                      {createReviewMutation.isPending ? 'Publication...' : 'Publier'}
+                    </button>
+                    {myReview ? (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteOpen(true)}
+                        disabled={deleteReviewMutation.isPending}
+                        className="rounded-md border border-red-500/40 bg-red-500/10 px-8 py-3 text-sm font-bold uppercase tracking-widest text-red-200 transition hover:border-red-400 hover:text-white disabled:opacity-50"
+                      >
+                        {deleteReviewMutation.isPending ? 'Suppression...' : 'Supprimer mon avis'}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {createReviewMutation.isError && createErrorStatus !== 409 ? (
+                    <p className="text-sm text-red-400">
+                      {getMutationErrorMessage(createReviewMutation.error)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-[#89919e]">Connecte-toi pour poster un avis.</p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-white/5 bg-[#1b1b1b] p-6">
+              <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
+                <h3 className="text-2xl font-black uppercase tracking-tight">
+                  Avis <span className="text-[#9dcaff]">de la communauté</span>
+                </h3>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#009dff]">
+                  Récents
+                </span>
+              </div>
+              <div className="space-y-6">
+                {reviews.length === 0 ? (
+                  <p className="text-sm text-[#89919e]">Aucun avis pour le moment.</p>
+                ) : (
+                  reviews.map((review) => (
+                    <article
+                      key={review.id}
+                      className="rounded-lg border border-white/5 bg-[#131313] p-4"
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="font-bold text-white">{review.username}</p>
+                        <span className="text-xs uppercase tracking-widest text-[#89919e]">
+                          {new Date(review.created_at).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                      <p className="mb-2 text-sm font-semibold text-[#9dcaff]">{review.rating}/5</p>
+                      <p className="text-sm leading-relaxed text-[#c8c6c9]">
+                        {review.comment || 'Pas de commentaire'}
+                      </p>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
+
+          <aside className="lg:col-span-4">
+            <div className="mb-8 overflow-hidden rounded-xl border border-[#009dff]/30 bg-[#2a2a2a]">
+              <div className="h-[320px] w-full md:h-[380px]">
+                <PosterImage
+                  src={film.poster_url || backdropImage}
+                  alt={film.title}
+                  className="h-full w-full object-cover"
                 />
-                <button
-                  type="button"
-                  onClick={() => createReviewMutation.mutate()}
-                  disabled={createReviewMutation.isPending}
-                  className="rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
-                >
-                  {createReviewMutation.isPending ? 'Envoi…' : 'Publier'}
-                </button>
-                {myReview ? (
-                  <button
-                    type="button"
-                    onClick={() => setDeleteOpen(true)}
-                    disabled={deleteReviewMutation.isPending}
-                    className="mt-2 rounded border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-200 hover:border-zinc-500/60 hover:text-white disabled:opacity-50"
-                  >
-                    {deleteReviewMutation.isPending ? 'Suppression…' : 'Supprimer mon avis'}
-                  </button>
-                ) : null}
-                {createReviewMutation.isError && createErrorStatus !== 409 ? (
-                  <p className="text-sm text-red-400">
-                    {(createReviewMutation.error as any)?.response?.data?.error ??
-                      (createReviewMutation.error as Error).message}
-                  </p>
-                ) : null}
               </div>
             </div>
-          )}
 
-          <div className="mt-6">
-            <Link
-              to="/discussion"
-              className="inline-block rounded border border-zinc-700 px-4 py-2 text-zinc-300 hover:border-zinc-500/60 hover:text-white"
-            >
-              Discuter de ce film
-            </Link>
-          </div>
+            <div className="rounded-xl border border-[#009dff]/20 bg-[#2a2a2a] p-6 shadow-[0_0_40px_rgba(0,157,255,0.08)]">
+              <h3 className="mb-4 border-b border-white/10 pb-3 text-sm font-black uppercase tracking-widest text-[#009dff]">
+                Partage en message direct
+              </h3>
+              {user ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#89919e]">
+                      Choisir un ami
+                    </label>
+                    <select
+                      value={shareFriendId ?? ''}
+                      onChange={(event) => setShareFriendId(event.target.value || null)}
+                      className="w-full rounded-md border border-white/10 bg-[#131313] px-3 py-2 text-sm text-[#e2e2e2] outline-none focus:border-[#009dff]"
+                    >
+                      <option value="">Sélectionner un ami</option>
+                      {(friends ?? []).map((friend) => (
+                        <option key={friend.id} value={friend.friend_id}>
+                          {friend.username}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#89919e]">
+                      Message perso
+                    </label>
+                    <textarea
+                      value={shareComment}
+                      onChange={(event) => setShareComment(event.target.value)}
+                      rows={3}
+                      placeholder="Check ce film..."
+                      className="w-full rounded-md border border-white/10 bg-[#131313] p-3 text-sm text-[#e2e2e2] outline-none focus:border-[#009dff]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={shareToDm}
+                    disabled={!shareFriendId}
+                    className="w-full rounded-md bg-[#009dff] py-3 text-sm font-bold uppercase tracking-widest text-[#003257] transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    Envoyer
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-[#89919e]">Connecte-toi pour partager ce film.</p>
+              )}
+            </div>
+          </aside>
         </div>
-      </div>
-    </div>
+      </main>
 
       {replaceOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -217,8 +365,7 @@ export function FilmDetailPage() {
               Vous avez déjà noté ce film
             </h3>
             <p className="mt-3 text-center text-sm text-zinc-300">
-              Si vous envoyez une nouvelle note, votre ancienne note sera remplacée
-              par la nouvelle.
+              Si vous envoyez une nouvelle note, votre ancienne note sera remplacée par la nouvelle.
             </p>
 
             <div className="mt-5 flex gap-3">
@@ -228,9 +375,7 @@ export function FilmDetailPage() {
                 disabled={updateReviewMutation.isPending}
                 className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
               >
-                {updateReviewMutation.isPending
-                  ? 'Remplacement…'
-                  : 'Remplacer ma note'}
+                {updateReviewMutation.isPending ? 'Remplacement...' : 'Remplacer ma note'}
               </button>
               <button
                 type="button"
@@ -244,8 +389,7 @@ export function FilmDetailPage() {
 
             {updateReviewMutation.isError ? (
               <p className="mt-4 text-center text-sm text-red-400">
-                {(updateReviewMutation.error as any)?.response?.data?.error ??
-                  (updateReviewMutation.error as Error).message}
+                {getMutationErrorMessage(updateReviewMutation.error)}
               </p>
             ) : null}
           </div>
@@ -269,7 +413,7 @@ export function FilmDetailPage() {
                 disabled={deleteReviewMutation.isPending}
                 className="flex-1 rounded bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-white disabled:opacity-50"
               >
-                {deleteReviewMutation.isPending ? 'Suppression…' : 'Supprimer'}
+                {deleteReviewMutation.isPending ? 'Suppression...' : 'Supprimer'}
               </button>
               <button
                 type="button"
@@ -283,8 +427,7 @@ export function FilmDetailPage() {
 
             {deleteReviewMutation.isError ? (
               <p className="mt-4 text-center text-sm text-red-400">
-                {(deleteReviewMutation.error as any)?.response?.data?.error ??
-                  (deleteReviewMutation.error as Error).message}
+                {getMutationErrorMessage(deleteReviewMutation.error)}
               </p>
             ) : null}
           </div>
