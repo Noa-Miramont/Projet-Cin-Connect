@@ -103,10 +103,10 @@ describe('api request interceptor', () => {
   })
 
   it('refreshes the access token and retries the request after a 401', async () => {
-    localStorage.setItem('cineconnect_token', 'expired-token')
-    localStorage.setItem('cineconnect_refresh_token', 'refresh-token-123')
+    localStorage.setItem('dollyzoom_token', 'expired-token')
+    localStorage.setItem('dollyzoom_refresh_token', 'refresh-token-123')
     localStorage.setItem(
-      'cineconnect_user',
+      'dollyzoom_user',
       JSON.stringify({ id: 'user-1', email: 'user@test.com', username: 'user' })
     )
 
@@ -137,7 +137,7 @@ describe('api request interceptor', () => {
         }
       }
     )
-    expect(localStorage.getItem('cineconnect_token')).toBe('new-access-token')
+    expect(localStorage.getItem('dollyzoom_token')).toBe('new-access-token')
     expect(retrySpy).toHaveBeenCalledWith(
       expect.objectContaining({
         _retry: true,

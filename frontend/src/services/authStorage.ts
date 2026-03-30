@@ -1,7 +1,11 @@
-export const TOKEN_KEY = 'cineconnect_token'
-export const REFRESH_TOKEN_KEY = 'cineconnect_refresh_token'
-export const USER_KEY = 'cineconnect_user'
-export const AUTH_STORAGE_EVENT = 'cineconnect-auth-storage'
+export const TOKEN_KEY = 'dollyzoom_token'
+export const REFRESH_TOKEN_KEY = 'dollyzoom_refresh_token'
+export const USER_KEY = 'dollyzoom_user'
+export const AUTH_STORAGE_EVENT = 'dollyzoom-auth-storage'
+
+const LEGACY_TOKEN_KEY = 'cineconnect_token'
+const LEGACY_REFRESH_TOKEN_KEY = 'cineconnect_refresh_token'
+const LEGACY_USER_KEY = 'cineconnect_user'
 
 function dispatchAuthStorageEvent() {
   if (typeof window === 'undefined') return
@@ -9,15 +13,18 @@ function dispatchAuthStorageEvent() {
 }
 
 export function getStoredAccessToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  return localStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(LEGACY_TOKEN_KEY)
 }
 
 export function getStoredRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+  return (
+    localStorage.getItem(REFRESH_TOKEN_KEY) ??
+    localStorage.getItem(LEGACY_REFRESH_TOKEN_KEY)
+  )
 }
 
 export function getStoredUser<T>() {
-  const rawUser = localStorage.getItem(USER_KEY)
+  const rawUser = localStorage.getItem(USER_KEY) ?? localStorage.getItem(LEGACY_USER_KEY)
   if (!rawUser) return null
 
   try {
@@ -53,5 +60,8 @@ export function clearStoredAuthSession() {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  localStorage.removeItem(LEGACY_TOKEN_KEY)
+  localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY)
+  localStorage.removeItem(LEGACY_USER_KEY)
   dispatchAuthStorageEvent()
 }
